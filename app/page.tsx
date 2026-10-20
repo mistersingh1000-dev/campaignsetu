@@ -37,7 +37,7 @@ export default function HomePage() {
             </Reveal>
             <Reveal delay={160}>
               <p className="muted mt-5 max-w-xl text-base leading-relaxed sm:text-lg">
-                Codecraft Messaging Hub is independent software operated by Codecraft Marketing. Connect a business-owned WhatsApp account through Meta-hosted Embedded Signup, receive messages and delivery events, manage contacts and conversations, and send compliant support or approved template messages from one dashboard.
+                CampaignSetu is independent software operated by Codecraft Marketing. Connect a business-owned WhatsApp account through Meta-hosted Embedded Signup, receive messages and delivery events, manage contacts and conversations, and send compliant support or approved template messages from one dashboard.
               </p>
             </Reveal>
             <Reveal delay={240}>

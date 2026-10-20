@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(site.domain),
   title: {
     default: "Business Messaging Dashboard | API Integration",
-    template: "%s | Codecraft Messaging Hub",
+    template: "%s | CampaignSetu",
   },
   description: site.description,
   keywords: [

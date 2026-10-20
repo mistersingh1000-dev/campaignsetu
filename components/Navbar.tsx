@@ -34,7 +34,7 @@ export default function Navbar() {
               <Icon.inbox className="h-5 w-5 text-white" />
             </span>
             <span className="font-display text-[15px] font-bold leading-tight">
-              Codecraft <span className="gradient-text">Messaging Hub</span>
+              Campaign<span className="gradient-text">Setu</span>
             </span>
           </Link>
 
