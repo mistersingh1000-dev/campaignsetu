@@ -1,0 +1,41 @@
+name: CI Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Build-time placeholders only. No production secrets are used in CI.
+      AUTH_SECRET: ci-build-only-auth-secret-not-for-production
+      CREDENTIAL_ENCRYPTION_KEY: ci-build-only-encryption-secret-not-for-production
+      NEXT_PUBLIC_SITE_URL: https://example.com
+      NEXT_PUBLIC_META_APP_ID: "1234567890"
+      NEXT_PUBLIC_META_CONFIG_ID: "1234567890"
+      NEXT_PUBLIC_META_GRAPH_VERSION: v26.0
+      WHATSAPP_API_VERSION: v26.0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
