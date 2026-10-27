@@ -19,11 +19,11 @@ export default function Footer() {
                 <Icon.inbox className="h-5 w-5 text-white" />
               </span>
               <span className="font-display text-[15px] font-bold">
-                Codecraft <span className="gradient-text">Messaging Hub</span>
+                Campaign<span className="gradient-text">Setu</span>
               </span>
             </Link>
             <p className="muted mt-4 max-w-sm text-sm leading-relaxed">
-              Independent software operated by Codecraft Marketing for businesses using the WhatsApp Business Platform. Customer onboarding uses Meta-hosted Embedded Signup.
+              Independent business messaging software for businesses using the WhatsApp Business Platform. Customer onboarding uses Meta-hosted Embedded Signup.
             </p>
             <p className="muted mt-3 max-w-sm text-xs leading-relaxed">
               We never ask for your Facebook password, Facebook OTP, WhatsApp OTP, Meta access token, or card PIN over chat, email, or support messages.
@@ -48,9 +48,9 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-6 text-sm muted sm:flex-row" style={{ borderColor: "var(--line)" }}>
-          <p>© 2026 Codecraft Messaging Hub · Operated by Codecraft Marketing.</p>
+          <p>© 2026 CampaignSetu.</p>
           <p className="max-w-xl text-center text-xs sm:text-right">
-            Codecraft Messaging Hub is not Meta, WhatsApp, or an official Meta/WhatsApp product and is not endorsed by Meta Platforms, Inc. WhatsApp and Meta are trademarks of their respective owners.
+            CampaignSetu is not Meta, WhatsApp, or an official Meta/WhatsApp product and is not endorsed by Meta Platforms, Inc. WhatsApp and Meta are trademarks of their respective owners.
           </p>
         </div>
       </div>
