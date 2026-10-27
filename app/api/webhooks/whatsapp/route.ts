@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import {
@@ -105,30 +105,56 @@ export async function POST(req: Request) {
           }
         }
 
-        // Messages sent from the linked WhatsApp Business app are delivered
-        // separately from inbound customer messages.
+        // Meta can deliver the same app echo more than once, including in parallel.
+        // A deterministic document ID and transaction make retries safe.
         for (const echo of value?.message_echoes || []) {
-          const to = echo?.to;
-          if (!to || !echo?.id) continue;
-          if (await whatsappMessageAlreadyProcessed(db, echo.id)) continue;
-
-          const text =
+          const to = typeof echo?.to === "string" ? echo.to : "";
+          if (!to || typeof echo?.id !== "string" || !echo.id) continue;
+          const text = String(
             echo?.text?.body ||
             echo?.image?.caption ||
             echo?.video?.caption ||
             echo?.document?.caption ||
-            `[${echo?.type || "unsupported"} message]`;
-          await createContact(db, userId, String(to), null, {
-            source: "whatsapp-business-app",
-            lastMessageTime: new Date().toISOString(),
+            `[${echo?.type || "unsupported"} message]`
+          );
+          const seconds = Number(echo.timestamp);
+          const timestamp = Number.isFinite(seconds) && seconds > 0 && seconds < 8640000000000
+            ? new Date(seconds * 1000).toISOString()
+            : new Date().toISOString();
+          const conversationId = convId(userId, to);
+          const messageId = "echo_" + createHash("sha256").update(userId + "\\0" + echo.id).digest("hex");
+          const conversationRef = db.collection("conversations").doc(conversationId);
+          const messageRef = db.collection("messages").doc(messageId);
+          await db.runTransaction(async (tx) => {
+            const [messageSnap, conversationSnap] = await Promise.all([
+              tx.get(messageRef),
+              tx.get(conversationRef),
+            ]);
+            if (messageSnap.exists) return;
+            const current = conversationSnap.data();
+            tx.set(messageRef, {
+              id: messageId,
+              userId,
+              conversationId,
+              sender: "user",
+              content: text,
+              timestamp,
+              status: "sent",
+              waMessageId: echo.id,
+            });
+            if (!conversationSnap.exists) {
+              tx.set(conversationRef, {
+                id: conversationId, userId, phoneNumberId,
+                wabaId: owner.waba_id || null, contactPhone: to,
+                contactName: null, lastMessage: text.substring(0, 100),
+                lastMessageTime: timestamp, unreadCount: 0, isRead: true,
+                createdAt: timestamp,
+              });
+            } else if (!current?.lastMessageTime || timestamp >= current.lastMessageTime) {
+              // Do not mark a conversation as read merely because a reply arrived.
+              tx.update(conversationRef, { lastMessage: text.substring(0, 100), lastMessageTime: timestamp });
+            }
           });
-          const id = convId(userId, String(to));
-          const existing = await db.collection("conversations").doc(id).get();
-          if (!existing.exists) {
-            await createConversation(db, userId, phoneNumberId, owner.waba_id || null, String(to), null);
-          }
-          // A phone reply must not silently mark previously unread messages read.
-          await addMessage(db, userId, id, "user", text, echo.id, true);
         }
 
         for (const msg of value?.messages || []) {
