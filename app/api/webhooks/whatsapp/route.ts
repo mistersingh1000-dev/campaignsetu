@@ -105,6 +105,32 @@ export async function POST(req: Request) {
           }
         }
 
+        // Messages sent from the linked WhatsApp Business app are delivered
+        // separately from inbound customer messages.
+        for (const echo of value?.message_echoes || []) {
+          const to = echo?.to;
+          if (!to || !echo?.id) continue;
+          if (await whatsappMessageAlreadyProcessed(db, echo.id)) continue;
+
+          const text =
+            echo?.text?.body ||
+            echo?.image?.caption ||
+            echo?.video?.caption ||
+            echo?.document?.caption ||
+            `[${echo?.type || "unsupported"} message]`;
+          await createContact(db, userId, String(to), null, {
+            source: "whatsapp-business-app",
+            lastMessageTime: new Date().toISOString(),
+          });
+          const id = convId(userId, String(to));
+          const existing = await db.collection("conversations").doc(id).get();
+          if (!existing.exists) {
+            await createConversation(db, userId, phoneNumberId, owner.waba_id || null, String(to), null);
+          }
+          // A phone reply must not silently mark previously unread messages read.
+          await addMessage(db, userId, id, "user", text, echo.id, true);
+        }
+
         for (const msg of value?.messages || []) {
           const from = msg?.from;
           if (!from) continue;
