@@ -98,7 +98,13 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         if (data?.type !== "WA_EMBEDDED_SIGNUP") return;
 
-        if (data?.event === "FINISH") {
+        if (data?.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING") {
+          // Do not send an existing Business App number through the standard
+          // registration endpoint. Coexistence provisioning is not ready yet.
+          codeRef.current = null;
+          signupRef.current = {};
+          setStatus("Meta completed the existing Business App step, but coexistence activation is still being prepared. Please contact support before retrying.");
+        } else if (data?.event === "FINISH") {
           const waba_id = data?.data?.waba_id;
           const phone_number_id = data?.data?.phone_number_id;
           if (waba_id && phone_number_id) {
@@ -121,7 +127,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
     return () => window.removeEventListener("message", onMessage);
   }, [ready, saveIfReady]);
 
-  const launch = () => {
+  const launch = (existingBusinessApp = false) => {
     if (!ready || !window.FB) {
       setStatus("Meta Embedded Signup is not enabled yet. Please contact support.");
       return;
@@ -149,6 +155,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         extras: {
           setup: {},
           sessionInfoVersion: "3",
+          ...(existingBusinessApp ? { featureType: "whatsapp_business_app_onboarding" } : {}),
         },
       }
     );
@@ -164,7 +171,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
           </p>
         </div>
         <button
-          onClick={launch}
+          onClick={() => launch(false)}
           disabled={!ready}
           title={ready ? "Open Meta Embedded Signup" : "Meta Embedded Signup is being configured"}
           className="btn-primary shrink-0 bg-[#1877F2] bg-none text-white disabled:cursor-not-allowed disabled:opacity-40"
@@ -173,6 +180,10 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
           Connect WhatsApp
         </button>
       </div>
+
+      <p className="muted mt-4 text-sm">
+        Existing WhatsApp Business App numbers require a coexistence setup, which is still being prepared. Keep using the app and contact support before connecting an existing number.
+      </p>
 
       {status && (
         <div className="mt-5 rounded-2xl border border-emerald/30 bg-emerald/[0.06] px-4 py-3 text-sm">
