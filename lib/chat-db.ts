@@ -101,8 +101,7 @@ export async function addMessage(
   conversationId: string,
   sender: "user" | "contact",
   content: string,
-  waMessageId: string | null = null,
-  preserveUnread: boolean = false
+  waMessageId: string | null = null
 ): Promise<Message> {
   const now = new Date().toISOString();
   const ref = db.collection(MESSAGES).doc();
@@ -125,8 +124,8 @@ export async function addMessage(
   await convRef.update({
     lastMessage: content.substring(0, 100),
     lastMessageTime: now,
-    isRead: preserveUnread ? Boolean(convSnap.data()?.isRead) : sender === "user",
-    unreadCount: preserveUnread ? prevUnread : sender === "contact" ? prevUnread + 1 : 0,
+    isRead: sender === "user",
+    unreadCount: sender === "contact" ? prevUnread + 1 : 0,
   });
 
   return msg;
