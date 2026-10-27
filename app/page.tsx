@@ -19,6 +19,11 @@ const trust = [
 export default function HomePage() {
   return (
     <>
+      <section className="container-px pt-6">
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm" role="status">
+          WhatsApp onboarding and messaging are being prepared. Availability depends on Meta approval and account eligibility. Contact us before purchasing for the current launch status.
+        </div>
+      </section>
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-radial-glow" />
         <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-dark [mask-image:radial-gradient(70%_50%_at_50%_0%,black,transparent)] [background-size:42px_42px]" />
@@ -37,7 +42,7 @@ export default function HomePage() {
             </Reveal>
             <Reveal delay={160}>
               <p className="muted mt-5 max-w-xl text-base leading-relaxed sm:text-lg">
-                CampaignSetu is independent software operated by Codecraft Marketing. Connect a business-owned WhatsApp account through Meta-hosted Embedded Signup, receive messages and delivery events, manage contacts and conversations, and send compliant support or approved template messages from one dashboard.
+                CampaignSetu is independent business messaging software. Connect a business-owned WhatsApp account through Meta-hosted Embedded Signup, receive messages and delivery events, manage contacts and conversations, and send compliant support or approved template messages from one dashboard.
               </p>
             </Reveal>
             <Reveal delay={240}>
@@ -85,7 +90,7 @@ export default function HomePage() {
 
       <section className="container-px py-12">
         <SectionHeading
-          eyebrow="Launch-ready capabilities"
+          eyebrow="Platform capabilities"
           title={<>The core tools needed to <span className="gradient-text">connect and support customers</span></>}
           subtitle="These are the capabilities currently implemented in the platform. Campaign automation, AI workflows and advanced template management can be added as the next product phase."
         />

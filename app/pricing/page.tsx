@@ -8,7 +8,7 @@ import { Icon } from "@/components/Icons";
 export const metadata: Metadata = {
   title: "Pricing — WhatsApp Cloud API Platform Plans",
   description:
-    "Platform subscription plans for Codecraft Messaging Hub. Meta usage charges, if applicable, are separate from the platform subscription.",
+    "Platform subscription plans for CampaignSetu. Meta usage charges, if applicable, are separate from the platform subscription.",
 };
 
 const compare = [
@@ -30,6 +30,11 @@ export default function PricingPage() {
         title={<>Choose your <span className="gradient-text">platform plan</span></>}
         subtitle="Subscribe to the dashboard, Embedded Signup, CRM, campaigns and automation platform. Meta WhatsApp usage charges are separate and depend on the customer's own WhatsApp Business Account usage."
       />
+      <section className="container-px pt-8">
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm" role="status">
+          WhatsApp onboarding and messaging are being prepared. Meta approval and account eligibility affect availability. Contact us before purchasing for the current launch status.
+        </div>
+      </section>
       <section className="container-px pt-12">
         <div className="flex flex-col items-center justify-between gap-5 rounded-3xl border border-emerald/40 bg-gradient-to-r from-emerald/[0.10] to-transparent p-6 sm:flex-row sm:p-8">
           <div>
@@ -45,7 +50,7 @@ export default function PricingPage() {
       <section className="container-px py-12">
         <PricingCards />
         <p className="muted mx-auto mt-8 max-w-2xl text-center text-xs">
-          Prices are for Codecraft Messaging Hub platform access. Meta may bill WhatsApp Business Platform usage separately. Secure online payment activates automatically when Razorpay is configured; manual UPI with admin verification remains available as a fallback.
+          Prices are for CampaignSetu platform access. Meta may bill WhatsApp Business Platform usage separately. Secure online payment activates automatically when Razorpay is configured; manual UPI with admin verification remains available as a fallback.
         </p>
       </section>
 
