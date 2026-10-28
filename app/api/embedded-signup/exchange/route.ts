@@ -38,8 +38,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: denied.error, message: denied.message }, { status: denied.status });
   }
 
-  const { code, waba_id, phone_number_id } = await req.json().catch(() => ({}));
-  if (!code || !waba_id || !phone_number_id) {
+  const { code, waba_id, phone_number_id, coexistence } = await req.json().catch(() => ({}));
+  if (!code || !waba_id || (!coexistence && !phone_number_id)) {
     return NextResponse.json(
       { error: "missing_signup_result", message: "Meta signup did not return all required values. Please try again." },
       { status: 400 }
@@ -75,6 +75,40 @@ export async function POST(req: Request) {
       { error: "meta_unreachable", message: "Could not reach Meta to finish authorization." },
       { status: 502 }
     );
+  }
+
+  if (coexistence === true) {
+    // Resolve the number using the granted WABA, not an untrusted browser ID.
+    // Ambiguous results require manual review; never guess a customer's number.
+    try {
+      const url = `https://graph.facebook.com/${version}/${encodeURIComponent(String(waba_id))}/phone_numbers?fields=id,display_phone_number,verified_name,is_on_biz_app,platform_type&limit=100`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${signupAccessToken}` }, cache: "no-store" });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !Array.isArray(result.data) || result.paging?.next) {
+        return NextResponse.json({ error: "coexistence_discovery_failed", message: "Could not safely identify the linked Business App number. Contact support before retrying." }, { status: 502 });
+      }
+      const candidates = result.data.filter((p: any) => p.is_on_biz_app === true && p.platform_type === "CLOUD_API" && (!phone_number_id || String(p.id) === String(phone_number_id)));
+      if (candidates.length !== 1) {
+        return NextResponse.json({ error: "coexistence_number_ambiguous", message: "The linked Business App number could not be uniquely verified. Contact support before retrying." }, { status: 409 });
+      }
+      const phone = candidates[0];
+      const subscribe = await fetch(`https://graph.facebook.com/${version}/${encodeURIComponent(String(waba_id))}/subscribed_apps`, {
+        method: "POST", headers: { Authorization: `Bearer ${signupAccessToken}` }, cache: "no-store",
+      });
+      const subData = await subscribe.json().catch(() => ({}));
+      if (!subscribe.ok || subData?.success !== true) {
+        return NextResponse.json({ error: "webhook_subscription_failed", message: "The account was linked at Meta, but webhook subscription failed. Contact support before retrying." }, { status: 502 });
+      }
+      const saved = await updateUser(db, session.sub, {
+        waba_id: String(waba_id), phone_number_id: String(phone.id),
+        wa_token: encryptCredential(signupAccessToken), wa_registered: true,
+        wa_registration_pin: null, wa_registration_error: null, wa_connected_at: new Date().toISOString(),
+      });
+      if (!saved) return NextResponse.json({ error: "user_not_found" }, { status: 404 });
+      return NextResponse.json({ ok: true, registered: true, coexistence: true, waba_id: String(waba_id), phone_number_id: String(phone.id), display_phone_number: phone.display_phone_number || null });
+    } catch {
+      return NextResponse.json({ error: "coexistence_setup_failed", message: "Meta linked the account but the server could not complete verification. Contact support before retrying." }, { status: 502 });
+    }
   }
 
   let phoneDetails: any = null;
