@@ -16,6 +16,8 @@ const GRAPH_VERSION = process.env.NEXT_PUBLIC_META_GRAPH_VERSION || "v26.0";
 
 export default function EmbeddedSignupButton({ onConnected }: { onConnected?: () => void }) {
   const [status, setStatus] = useState<string>("");
+  const [pending, setPending] = useState(false);
+  const [recovering, setRecovering] = useState(false);
   const codeRef = useRef<string | null>(null);
   const signupRef = useRef<{ waba_id?: string; phone_number_id?: string; coexistence?: boolean }>({});
   const submittingRef = useRef(false);
@@ -25,6 +27,42 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
     CONFIG_ID !== "YOUR_CONFIG_ID" &&
     Boolean(APP_ID) &&
     Boolean(CONFIG_ID);
+
+  const checkPending = useCallback(async () => {
+    try {
+      const response = await fetch("/api/embedded-signup/exchange", { cache: "no-store" });
+      if (response.ok) setPending((await response.json()).pending === true);
+    } catch {
+      // Keep the current state on transient network errors.
+    }
+  }, []);
+
+  useEffect(() => { void checkPending(); }, [checkPending]);
+
+  const resumeConnection = async () => {
+    if (recovering) return;
+    setRecovering(true);
+    setStatus("Resuming the saved Meta connection…");
+    try {
+      const res = await fetch("/api/embedded-signup/exchange", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data?.pending) setPending(true);
+        setStatus(data?.message || "Could not complete the saved connection. Contact support.");
+      } else {
+        setStatus("Meta account details are saved. Message delivery still requires Meta approval and end-to-end testing.");
+        onConnected?.();
+      }
+      await checkPending();
+    } catch {
+      setStatus("Could not reach the server. Your saved connection may still be pending; contact support before restarting signup.");
+    } finally {
+      setRecovering(false);
+    }
+  };
 
   const saveIfReady = useCallback(async () => {
     const code = codeRef.current;
@@ -51,7 +89,8 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
       }
 
       if (data?.registered === true) {
-        setStatus("Connected ✓ Your WhatsApp Business Account, phone number and webhook are connected.");
+        setStatus("Meta account details are saved. Message delivery still requires Meta approval and end-to-end testing.");
+        setPending(false);
       } else if (data?.needsRegistration) {
         setStatus(
           data?.message ||
@@ -62,11 +101,12 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
       }
       onConnected?.();
     } catch {
-      setStatus("Could not reach the server to finish setup. Please try again.");
+      setStatus("Could not reach the server to finish setup. Check for a saved connection before starting signup again.");
+      await checkPending();
     } finally {
       submittingRef.current = false;
     }
-  }, [onConnected]);
+  }, [onConnected, checkPending]);
 
   useEffect(() => {
     if (!ready) return;
@@ -130,6 +170,10 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
   }, [ready, saveIfReady]);
 
   const launch = (existingBusinessApp = false) => {
+    if (pending) {
+      setStatus("A connection is already pending. Use Resume connection instead of starting again.");
+      return;
+    }
     if (!ready || !window.FB) {
       setStatus("Meta Embedded Signup is not enabled yet. Please contact support.");
       return;
@@ -174,7 +218,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         </div>
         <button
           onClick={() => launch(true)}
-          disabled={!ready}
+          disabled={!ready || pending || recovering}
           title={ready ? "Open Meta Embedded Signup" : "Meta Embedded Signup is being configured"}
           className="btn-primary shrink-0 bg-[#1877F2] bg-none text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -186,6 +230,15 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
       <p className="muted mt-4 text-sm">
         Connect your existing WhatsApp Business App using the Meta-hosted coexistence flow. Keep the WhatsApp Business app installed and active on your phone.
       </p>
+
+      {pending && (
+        <div className="mt-4 rounded-2xl border border-amber-500/40 p-4 text-sm">
+          <p>A previous Meta connection is saved but still needs completion. Do not start signup again.</p>
+          <button type="button" onClick={resumeConnection} disabled={recovering} className="btn-ghost mt-3">
+            {recovering ? "Resuming…" : "Resume connection"}
+          </button>
+        </div>
+      )}
 
       {status && (
         <div className="mt-5 rounded-2xl border border-emerald/30 bg-emerald/[0.06] px-4 py-3 text-sm">
