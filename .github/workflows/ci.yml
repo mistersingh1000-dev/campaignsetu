@@ -37,5 +37,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test coexistence recovery
+        run: node --test tests/coexistence-recovery.test.cjs
+
       - name: Build
         run: npm run build
