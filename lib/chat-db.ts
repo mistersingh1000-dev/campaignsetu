@@ -76,8 +76,13 @@ export async function createConversation(
     isRead: true,
     createdAt: now,
   };
-  await db.collection(CONVERSATIONS).doc(id).set(conv);
-  return conv;
+  const ref = db.collection(CONVERSATIONS).doc(id);
+  return db.runTransaction(async (tx) => {
+    const existing = await tx.get(ref);
+    if (existing.exists) return existing.data() as Conversation;
+    tx.create(ref, conv);
+    return conv;
+  });
 }
 
 export async function getConversation(
@@ -115,17 +120,21 @@ export async function addMessage(
     status: "sent",
     waMessageId,
   };
-  await ref.set(msg);
-
   const convRef = db.collection(CONVERSATIONS).doc(conversationId);
-  const convSnap = await convRef.get();
-  const prevUnread = (convSnap.data()?.unreadCount as number) || 0;
-
-  await convRef.update({
-    lastMessage: content.substring(0, 100),
-    lastMessageTime: now,
-    isRead: sender === "user",
-    unreadCount: sender === "contact" ? prevUnread + 1 : 0,
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(convRef);
+    if (!snap.exists) throw new Error("Conversation does not exist");
+    const current = snap.data()!;
+    tx.set(ref, msg);
+    const update: Record<string, unknown> = {
+      isRead: sender === "user",
+      unreadCount: sender === "contact" ? (Number(current.unreadCount) || 0) + 1 : 0,
+    };
+    if (!current.lastMessageTime || now >= current.lastMessageTime) {
+      update.lastMessage = content.substring(0, 100);
+      update.lastMessageTime = now;
+    }
+    tx.update(convRef, update);
   });
 
   return msg;
