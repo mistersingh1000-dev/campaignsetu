@@ -62,10 +62,10 @@ export async function finishCoexistence(db: Firestore, email: string, leaseId: s
   const owner = db.collection("users").doc(normalized);
   const claim = db.collection("wa_phone_owners").doc(phoneId);
   // Avoid taking a number previously connected to a different user by older code.
-  const existing = await db.collection("users").where("phone_number_id", "==", phoneId).limit(2).get();
-  if (existing.docs.some((doc) => doc.id !== normalized)) return "conflict";
+  const existingOwners = db.collection("users").where("phone_number_id", "==", phoneId).limit(2);
   return db.runTransaction(async (tx) => {
-    const [p, u, c] = await Promise.all([tx.get(pending), tx.get(owner), tx.get(claim)]);
+    const [p, u, c, existing] = await Promise.all([tx.get(pending), tx.get(owner), tx.get(claim), tx.get(existingOwners)]);
+    if (existing.docs.some((doc) => doc.id !== normalized)) return "conflict";
     if (!p.exists || p.data()?.leaseId !== leaseId) return "stale";
     if (!u.exists || (u.data()?.phone_number_id && u.data()?.phone_number_id !== phoneId) || (c.exists && c.data()?.userId !== normalized)) return "conflict";
     const item = p.data() as Pending;
