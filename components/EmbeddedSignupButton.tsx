@@ -17,7 +17,7 @@ const GRAPH_VERSION = process.env.NEXT_PUBLIC_META_GRAPH_VERSION || "v26.0";
 export default function EmbeddedSignupButton({ onConnected }: { onConnected?: () => void }) {
   const [status, setStatus] = useState<string>("");
   const codeRef = useRef<string | null>(null);
-  const signupRef = useRef<{ waba_id?: string; phone_number_id?: string }>({});
+  const signupRef = useRef<{ waba_id?: string; phone_number_id?: string; coexistence?: boolean }>({});
   const submittingRef = useRef(false);
 
   const ready =
@@ -28,8 +28,8 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
 
   const saveIfReady = useCallback(async () => {
     const code = codeRef.current;
-    const { waba_id, phone_number_id } = signupRef.current;
-    if (!code || !waba_id || !phone_number_id || submittingRef.current) return;
+    const { waba_id, phone_number_id, coexistence } = signupRef.current;
+    if (!code || !waba_id || (!coexistence && !phone_number_id) || submittingRef.current) return;
 
     submittingRef.current = true;
     setStatus("Finishing your WhatsApp API connection…");
@@ -38,7 +38,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
       const res = await fetch("/api/embedded-signup/exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, waba_id, phone_number_id }),
+        body: JSON.stringify({ code, waba_id, phone_number_id, coexistence: coexistence === true }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -99,11 +99,13 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         if (data?.type !== "WA_EMBEDDED_SIGNUP") return;
 
         if (data?.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING") {
-          // Do not send an existing Business App number through the standard
-          // registration endpoint. Coexistence provisioning is not ready yet.
-          codeRef.current = null;
-          signupRef.current = {};
-          setStatus("Meta completed the existing Business App step, but coexistence activation is still being prepared. Please contact support before retrying.");
+          const waba_id = data?.data?.waba_id;
+          if (!waba_id) {
+            setStatus("Meta did not return the WhatsApp account ID. Contact support before retrying.");
+          } else {
+            signupRef.current = { waba_id, phone_number_id: data?.data?.phone_number_id, coexistence: true };
+            void saveIfReady();
+          }
         } else if (data?.event === "FINISH") {
           const waba_id = data?.data?.waba_id;
           const phone_number_id = data?.data?.phone_number_id;
@@ -171,7 +173,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
           </p>
         </div>
         <button
-          onClick={() => launch(false)}
+          onClick={() => launch(true)}
           disabled={!ready}
           title={ready ? "Open Meta Embedded Signup" : "Meta Embedded Signup is being configured"}
           className="btn-primary shrink-0 bg-[#1877F2] bg-none text-white disabled:cursor-not-allowed disabled:opacity-40"
@@ -182,7 +184,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
       </div>
 
       <p className="muted mt-4 text-sm">
-        Existing WhatsApp Business App numbers require a coexistence setup, which is still being prepared. Keep using the app and contact support before connecting an existing number.
+        Connect your existing WhatsApp Business App using the Meta-hosted coexistence flow. Keep the WhatsApp Business app installed and active on your phone.
       </p>
 
       {status && (
