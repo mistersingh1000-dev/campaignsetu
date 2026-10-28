@@ -99,6 +99,9 @@ export async function POST(req: Request) {
     try {
       lease = await claimCoexistence(db, session.sub);
       if (!lease) return NextResponse.json({ error: "coexistence_unavailable", pending: await hasPendingCoexistence(db, session.sub), message: "A connection may already be processing. Wait and use Resume connection." }, { status: 409 });
+      if (providerModeEnabled()) {
+        return NextResponse.json({ error: "coexistence_provider_unavailable", pending: true, message: "Provider-mode coexistence is not configured. Contact support before retrying." }, { status: 503 });
+      }
       const url = `https://graph.facebook.com/${version}/${encodeURIComponent(lease.wabaId)}/phone_numbers?fields=id,display_phone_number,verified_name,is_on_biz_app,platform_type&limit=100`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${lease.token}` }, cache: "no-store" });
       const result = await res.json().catch(() => ({}));
