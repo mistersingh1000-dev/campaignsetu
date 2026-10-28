@@ -147,14 +147,11 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
             void saveIfReady();
           }
         } else if (data?.event === "FINISH") {
-          const waba_id = data?.data?.waba_id;
-          const phone_number_id = data?.data?.phone_number_id;
-          if (waba_id && phone_number_id) {
-            signupRef.current = { waba_id, phone_number_id };
-            void saveIfReady();
-          } else {
-            setStatus("Meta finished signup but did not return the WhatsApp account IDs. Please contact support before retrying.");
-          }
+          // This button is exclusively for the existing Business App flow.
+          // Do not send a standard FINISH result to the registration endpoint.
+          codeRef.current = null;
+          signupRef.current = {};
+          setStatus("Meta did not confirm an existing Business App connection. No phone registration was started. Contact support before retrying.");
         } else if (data?.event === "CANCEL") {
           setStatus("Signup was cancelled before completion.");
         } else if (data?.event === "ERROR") {
