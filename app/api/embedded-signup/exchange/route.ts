@@ -24,7 +24,9 @@ export async function GET() {
   if (!session) return NextResponse.json({ pending: false }, { status: 401 });
   const db = getDb();
   if (!db) return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
-  return NextResponse.json({ pending: await hasPendingCoexistence(db, session.sub) });
+  const user = await findUser(db, session.sub);
+  if (!user) return NextResponse.json({ authenticated: false }, { status: 401 });
+  return NextResponse.json({ authenticated: true, canConnect: accessState(user).active, pending: await hasPendingCoexistence(db, session.sub) });
 }
 
 export async function POST(req: Request) {
