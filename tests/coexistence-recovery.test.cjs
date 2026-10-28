@@ -27,7 +27,7 @@ class FakeDB {
   collection(name) {
     const db = this;
     return {
-      doc(id) { const key = name + "/" + id; return { key, async get() { const value = db.map.get(key); return { exists: value !== undefined, data: () => value }; } }; },
+      doc(id) { id = id || require("node:crypto").randomUUID(); const key = name + "/" + id; return { key, async get() { const value = db.map.get(key); return { exists: value !== undefined, data: () => value }; } }; },
       where(field, _op, value) { return { limit() { return { async get() {
         return { docs: [...db.map].filter(([k, v]) => k.startsWith(name + "/") && v[field] === value).slice(0, 2).map(([k]) => ({ id: k.slice(name.length + 1) })) };
       } }; } }; },
@@ -107,4 +107,26 @@ test("number conflicts and provider mode do not overwrite an account", async () 
   assert.equal(result.status, 503);
   assert.equal(result.body.pending, true);
   assert.equal(db.map.get("users/owner@example.com").phone_number_id, null);
+});
+
+test("parallel conversation creation and replies preserve existing data and unread counts", async () => {
+  const chat = loadModule(read("lib/chat-db.ts"));
+  const db = makeDB();
+  const id = chat.convId("owner@example.com", "919999999999");
+  await Promise.all([
+    chat.createConversation(db, "owner@example.com", "456", "123", "919999999999", "Customer"),
+    chat.createConversation(db, "owner@example.com", "456", "123", "919999999999", null),
+  ]);
+  const ref = db.collection("conversations").doc(id);
+  db.map.set(ref.key, { ...db.map.get(ref.key), lastMessage: "newer app reply", lastMessageTime: "2099-01-01T00:00:00.000Z", unreadCount: 2, isRead: false });
+  await chat.createConversation(db, "owner@example.com", "456", "123", "919999999999", null);
+  await Promise.all([
+    chat.addMessage(db, "owner@example.com", id, "contact", "one"),
+    chat.addMessage(db, "owner@example.com", id, "contact", "two"),
+  ]);
+  const final = db.map.get(ref.key);
+  assert.equal(final.contactName, "Customer");
+  assert.equal(final.lastMessage, "newer app reply");
+  assert.equal(final.unreadCount, 4);
+  assert.equal(final.isRead, false);
 });
