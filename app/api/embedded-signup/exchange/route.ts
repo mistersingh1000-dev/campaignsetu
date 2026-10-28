@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   if (!resume && (!code || !waba_id || (!coexistence && !phone_number_id))) {
     return NextResponse.json({ error: "missing_signup_result", message: "Meta signup did not return all required values." }, { status: 400 });
   }
-  if (!resume && coexistence && (!/^\\d+$/.test(String(waba_id)) || (phone_number_id && !/^\\d+$/.test(String(phone_number_id))))) {
+  if (!resume && coexistence && (!/^\d+$/.test(String(waba_id)) || (phone_number_id && !/^\d+$/.test(String(phone_number_id))))) {
     return NextResponse.json({ error: "invalid_signup_result" }, { status: 400 });
   }
 
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
       if (!res.ok || !Array.isArray(result.data) || result.paging?.next) {
         return NextResponse.json({ error: "coexistence_discovery_failed", pending: true, message: "Could not safely identify the linked number. Resume later or contact support." }, { status: 502 });
       }
-      const candidates = result.data.filter((p: any) => /^\\d+$/.test(String(p.id || "")) && p.is_on_biz_app === true && p.platform_type === "CLOUD_API" && (!lease!.phoneId || String(p.id) === lease!.phoneId));
+      const candidates = result.data.filter((p: any) => /^\d+$/.test(String(p.id || "")) && p.is_on_biz_app === true && p.platform_type === "CLOUD_API" && (!lease!.phoneId || String(p.id) === lease!.phoneId));
       if (candidates.length !== 1) {
         return NextResponse.json({ error: "coexistence_number_ambiguous", pending: true, message: "The linked Business App number could not be uniquely verified. Contact support." }, { status: 409 });
       }
