@@ -18,6 +18,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
   const [status, setStatus] = useState<string>("");
   const [pending, setPending] = useState(false);
   const [recovering, setRecovering] = useState(false);
+  const [access, setAccess] = useState<"checking" | "allowed" | "sign_in" | "inactive" | "unavailable">("checking");
   const codeRef = useRef<string | null>(null);
   const signupRef = useRef<{ waba_id?: string; phone_number_id?: string; coexistence?: boolean }>({});
   const submittingRef = useRef(false);
@@ -31,16 +32,24 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
   const checkPending = useCallback(async () => {
     try {
       const response = await fetch("/api/embedded-signup/exchange", { cache: "no-store" });
-      if (response.ok) setPending((await response.json()).pending === true);
+      if (response.status === 401) {
+        setAccess("sign_in");
+      } else if (response.ok) {
+        const state = await response.json();
+        setPending(state.pending === true);
+        setAccess(state.canConnect === true ? "allowed" : "inactive");
+      } else {
+        setAccess("unavailable");
+      }
     } catch {
-      // Keep the current state on transient network errors.
+      setAccess("unavailable");
     }
   }, []);
 
   useEffect(() => { void checkPending(); }, [checkPending]);
 
   const resumeConnection = async () => {
-    if (recovering) return;
+    if (recovering || access !== "allowed") return;
     setRecovering(true);
     setStatus("Resuming the saved Meta connection…");
     try {
@@ -167,6 +176,10 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
   }, [ready, saveIfReady]);
 
   const launch = (existingBusinessApp = false) => {
+    if (access !== "allowed") {
+      setStatus("Sign in with an active account before starting WhatsApp signup.");
+      return;
+    }
     if (pending) {
       setStatus("A connection is already pending. Use Resume connection instead of starting again.");
       return;
@@ -215,7 +228,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         </div>
         <button
           onClick={() => launch(true)}
-          disabled={!ready || pending || recovering}
+          disabled={!ready || pending || recovering || access !== "allowed"}
           title={ready ? "Open Meta Embedded Signup" : "Meta Embedded Signup is being configured"}
           className="btn-primary shrink-0 bg-[#1877F2] bg-none text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -228,10 +241,15 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         Connect your existing WhatsApp Business App using the Meta-hosted coexistence flow. Keep the WhatsApp Business app installed and active on your phone.
       </p>
 
+      {access === "sign_in" && (
+        <p className="mt-4 text-sm">Please <a href="/login" className="text-emerald underline">sign in</a> to your CampaignSetu account before connecting WhatsApp.</p>
+      )}
+      {access === "inactive" && <p className="mt-4 text-sm">An active trial or subscription is required to connect WhatsApp.</p>}
+      {access === "unavailable" && <p className="mt-4 text-sm">Connection status is unavailable. Please refresh or contact support.</p>}
       {pending && (
         <div className="mt-4 rounded-2xl border border-amber-500/40 p-4 text-sm">
           <p>A previous Meta connection is saved but still needs completion. Do not start signup again.</p>
-          <button type="button" onClick={resumeConnection} disabled={recovering} className="btn-ghost mt-3">
+          <button type="button" onClick={resumeConnection} disabled={recovering || access !== "allowed"} className="btn-ghost mt-3">
             {recovering ? "Resuming…" : "Resume connection"}
           </button>
         </div>
