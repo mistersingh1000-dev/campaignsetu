@@ -75,8 +75,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           <Icon.inbox className="h-6 w-6" />
         </span>
         <div className="min-w-0">
-          <p className="font-display text-sm font-bold leading-tight">Codecraft Messaging Hub</p>
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-white/50">Business API Workspace</p>
+          <p className="font-display text-sm font-bold leading-tight">CampaignSetu</p>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-white/50">CRM & Messaging Workspace</p>
         </div>
       </div>
 
