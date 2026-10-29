@@ -4,6 +4,7 @@ import { COOKIE_NAME, verifySession } from "@/lib/auth";
 import { findUser, getDb } from "@/lib/db";
 import { accessState } from "@/lib/entitlements";
 import { cleanLead, saveLead } from "@/lib/crm-db";
+import { defaultSettings, type CrmSettings } from "@/lib/crm-settings";
 export const runtime = "nodejs";
 async function context(write = false) {
   const session = await verifySession((await cookies()).get(COOKIE_NAME)?.value);
@@ -36,12 +37,18 @@ export async function PATCH(req: Request) {
   if (!input || typeof input.id !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.id)) return NextResponse.json({error:"Invalid lead."},{status:400});
   const ref = c.db!.collection("crm_leads").doc(input.id);
   try {
+    const config=await c.db!.collection("crm_settings").doc(c.userId!).get();
     const result = await c.db!.runTransaction(async tx => {
       const snap = await tx.get(ref);
       if (!snap.exists || snap.data()?.userId !== c.userId) return null;
-      const fields = cleanLead(input);
-      tx.update(ref,{...fields,updatedAt:new Date().toISOString()});
-      return {...snap.data(),...fields};
+      const current=snap.data()!;
+      const fields = cleanLead(input, !current.facebookLeadId, (config.data() as CrmSettings)||defaultSettings);
+      if(current.facebookLeadId) fields.source="Facebook Lead Ads";
+      const now=new Date().toISOString();
+      const changed=["stage","notes","followUpAt","followUpDone","value","tags","customValues","source"].filter(k=>JSON.stringify(current[k])!==JSON.stringify((fields as any)[k]));
+      const activity=[...(current.activity||[]),...(changed.length?[{at:now,text:"Updated: "+changed.join(", ")}]:[])].slice(-50);
+      tx.update(ref,{...fields,activity,updatedAt:now});
+      return {...current,...fields,activity,updatedAt:now};
     });
     return result ? NextResponse.json({lead:result}) : NextResponse.json({error:"Lead not found."},{status:404});
   } catch { return NextResponse.json({error:"Invalid lead details."},{status:400}); }

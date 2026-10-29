@@ -3,7 +3,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const ts = require("typescript");
 const compiled=ts.transpileModule(fs.readFileSync("lib/crm-db.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
-const m={exports:{}};new Function("exports","require","module",compiled)(m.exports,require,m);
+const settingsCode=ts.transpileModule(fs.readFileSync("lib/crm-settings.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+const settingsModule={exports:{}};new Function("exports","require","module",settingsCode)(settingsModule.exports,require,settingsModule);
+const m={exports:{}};new Function("exports","require","module",compiled)(m.exports,n=>n==="./crm-settings"?settingsModule.exports:require(n),m);
 const {cleanLead,saveLead}=m.exports;
 test("lead validation rejects invalid contact, stage, dates and values",()=>{
  for(const input of [
@@ -16,7 +18,7 @@ test("lead validation rejects invalid contact, stage, dates and values",()=>{
 });
 test("replayed Facebook leads deduplicate within a workspace without overwriting edits",async()=>{
  const map=new Map();let serial=Promise.resolve();let n=0;
- const db={collection:()=>({doc:(id)=>({id:id||String(++n)})}),runTransaction:(fn)=>{
+ const db={collection:()=>({doc:(id)=>({id:id||String(++n),get:async()=>({data:()=>undefined})})}),runTransaction:(fn)=>{
   const p=serial.then(async()=>{
    const writes=[];const value=await fn({get:async r=>({exists:map.has(r.id),data:()=>map.get(r.id)}),create:(r,v)=>writes.push(()=>map.set(r.id,v))});
    writes.forEach(f=>f());return value;
@@ -50,4 +52,17 @@ test("Facebook webhook rejects unsigned requests before accessing the database",
    assert.equal(response.status,401);
   }
  }finally {if(old===undefined)delete process.env.META_APP_SECRET;else process.env.META_APP_SECRET=old;}
+});
+
+test("custom field validation strips unknown keys and rejects invalid values",()=>{
+ const {cleanCustomValues,cleanSettings}=settingsModule.exports;
+ const settings=cleanSettings({tags:["Hot","Hot"],sources:["Event"],fields:[{id:"budget",label:"Budget",type:"number"},{id:"service",label:"Service",type:"select",options:["Ads","Website"]},{id:"consent",label:"Consent",type:"boolean"}]});
+ assert.deepEqual(settings.tags,["Hot"]);assert.ok(settings.sources.includes("Manual"));
+ assert.deepEqual(cleanCustomValues({budget:"5000",service:"Ads",untrusted:"drop"},settings.fields),{budget:5000,service:"Ads"});
+ assert.throws(()=>cleanCustomValues({budget:"invalid"},settings.fields));
+ assert.throws(()=>cleanCustomValues({service:"Unknown"},settings.fields));
+ assert.throws(()=>cleanCustomValues({consent:"true"},settings.fields));
+ assert.throws(()=>cleanSettings({fields:[{id:"bad/key",label:"Bad",type:"text"}]}));
+ const lead=cleanLead({name:"Lead",email:"a@example.com",tags:[" Hot ","Hot"],rowColor:"red",followUpDone:true});
+ assert.deepEqual(lead.tags,["Hot"]);assert.equal(lead.rowColor,"");assert.equal(lead.followUpDone,true);
 });
