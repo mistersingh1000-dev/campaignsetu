@@ -66,3 +66,21 @@ test("custom field validation strips unknown keys and rejects invalid values",()
  const lead=cleanLead({name:"Lead",email:"a@example.com",tags:[" Hot ","Hot"],rowColor:"red",followUpDone:true});
  assert.deepEqual(lead.tags,["Hot"]);assert.equal(lead.rowColor,"");assert.equal(lead.followUpDone,true);
 });
+
+test("custom pipeline labels keep stable IDs and validate lead transitions",()=>{
+ const {cleanSettings,getPipeline}=settingsModule.exports;
+ const config=cleanSettings({pipeline:[...getPipeline({sources:[],tags:[],fields:[]}).map(p=>p.id==="New"?{...p,label:"Fresh enquiry"}:p),{id:"Demo",label:"Demo booked",color:"#123456",outcome:"open"}]});
+ assert.equal(getPipeline(config)[0].id,"New");
+ assert.equal(getPipeline(config)[0].label,"Fresh enquiry");
+ assert.equal(cleanLead({name:"A",email:"a@example.com",stage:"Demo"},true,config).stage,"Demo");
+ assert.throws(()=>cleanLead({name:"A",email:"a@example.com",stage:"Missing"},true,config));
+ assert.throws(()=>cleanSettings({pipeline:[{id:"New",label:"New",color:"#ffffff",outcome:"open"}]}));
+});
+test("email templates personalize plain text and reject header injection",()=>{
+ const {cleanSettings,renderEmailTemplate}=settingsModule.exports;
+ const template={id:"intro",name:"Intro",subject:"Hello {{name}}",body:"Phone {{phone}} / {{email}}"};
+ const config=cleanSettings({emailTemplates:[template]});
+ assert.equal(config.emailTemplates.length,1);
+ assert.deepEqual(renderEmailTemplate(template,{name:"Manpreet",phone:"123",email:"a@example.com"}),{subject:"Hello Manpreet",body:"Phone 123 / a@example.com"});
+ assert.throws(()=>cleanSettings({emailTemplates:[{...template,subject:"Hello\r\nBcc: someone@example.com"}]}));
+});
