@@ -8,8 +8,8 @@ export function cleanLead(input: any, requireContact = true) {
   const phone = String(input.phone || "").replace(/[^+0-9]/g,"").slice(0,20);
   const email = String(input.email || "").trim().toLowerCase().slice(0,254);
   if (!name || (requireContact && !phone && !email)) throw new Error("Name and a phone number or email are required.");
-  if (phone && !/^\\+?[0-9]{7,15}$/.test(phone)) throw new Error("Invalid phone number.");
-  if (email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) throw new Error("Invalid email address.");
+  if (phone && !/^\+?[0-9]{7,15}$/.test(phone)) throw new Error("Invalid phone number.");
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Invalid email address.");
   if (input.stage && !stages.includes(input.stage)) throw new Error("Invalid stage.");
   const stage: Stage = stages.includes(input.stage) ? input.stage : "New";
   const due = input.followUpAt ? new Date(input.followUpAt) : null;
