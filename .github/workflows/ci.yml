@@ -40,5 +40,8 @@ jobs:
       - name: Test CRM
         run: node --test tests/crm.test.cjs
 
+      - name: Test encrypted backup
+        run: node --test tests/disaster-backup.test.cjs
+
       - name: Build
         run: npm run build
