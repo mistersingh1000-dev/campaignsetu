@@ -1,5 +1,19 @@
 export type CustomField = { id:string; label:string; type:"text"|"textarea"|"number"|"date"|"boolean"|"select"; options:string[] };
-export type CrmSettings = { sources:string[]; tags:string[]; fields:CustomField[] };
+export type PipelineStage = {id:string;label:string;color:string;outcome:"open"|"won"|"lost"};
+export type EmailTemplate = {id:string;name:string;subject:string;body:string};
+export type CrmSettings = { sources:string[]; tags:string[]; fields:CustomField[]; pipeline?:PipelineStage[]; emailTemplates?:EmailTemplate[] };
+export const defaultPipeline:PipelineStage[] = [
+{id:"New",label:"New",color:"#3b82f6",outcome:"open"},
+{id:"Contacted",label:"Contacted",color:"#eab308",outcome:"open"},
+{id:"Qualified",label:"Qualified",color:"#f97316",outcome:"open"},
+{id:"Proposal",label:"Proposal",color:"#a855f7",outcome:"open"},
+{id:"Won",label:"Won",color:"#10b981",outcome:"won"},
+{id:"Lost",label:"Lost",color:"#ef4444",outcome:"lost"}];
+export function getPipeline(settings:CrmSettings):PipelineStage[]{return settings.pipeline?.length?settings.pipeline:defaultPipeline;}
+export function renderEmailTemplate(template:EmailTemplate,lead:{name?:string;phone?:string;email?:string}){
+ const render=(text:string)=>text.replace(/\{\{(name|phone|email)\}\}/g,(_,key)=>String(lead[key as keyof typeof lead]||""));
+ return {subject:render(template.subject),body:render(template.body)};
+}
 export const defaultSources=["Manual","Facebook Lead Ads","WhatsApp","Instagram","Google Ads","Website","Referral","Import","Phone"];
 export const defaultSettings:CrmSettings={sources:defaultSources,tags:[],fields:[]};
 export function cleanSettings(input:any):CrmSettings {
@@ -13,7 +27,19 @@ export function cleanSettings(input:any):CrmSettings {
   return {id:f.id,label,type:f.type,options};
  });
  if(new Set(fields.map(f=>f.id)).size!==fields.length)throw Error("Duplicate field key.");
- return {sources,tags,fields};
+ const pipeline:PipelineStage[]=(Array.isArray(input.pipeline)?input.pipeline:defaultPipeline).slice(0,30).map((p:any)=>{
+  const id=String(p.id||""),label=String(p.label||"").trim().slice(0,60);
+  if(!/^[a-zA-Z][a-zA-Z0-9_]{0,59}$/.test(id)||!label||!/^#[0-9a-fA-F]{6}$/.test(p.color)||!["open","won","lost"].includes(p.outcome))throw Error("Invalid pipeline stage.");
+  return {id,label,color:p.color,outcome:p.outcome};
+ });
+ if(new Set(pipeline.map(p=>p.id)).size!==pipeline.length||!pipeline.some(p=>p.id==="New")||!pipeline.some(p=>p.outcome==="won")||!pipeline.some(p=>p.outcome==="lost"))throw Error("Pipeline needs New, Won and Lost outcomes with unique keys.");
+ const emailTemplates:EmailTemplate[]=(Array.isArray(input.emailTemplates)?input.emailTemplates:[]).slice(0,50).map((t:any)=>{
+  const id=String(t.id||""),name=String(t.name||"").trim().slice(0,100),subject=String(t.subject||"").trim().slice(0,200),body=String(t.body||"").trim().slice(0,10000);
+  if(!/^[a-zA-Z][a-zA-Z0-9_]{0,59}$/.test(id)||!name||!subject||!body||/[\r\n]/.test(subject))throw Error("Invalid email template.");
+  return {id,name,subject,body};
+ });
+ if(new Set(emailTemplates.map(t=>t.id)).size!==emailTemplates.length)throw Error("Duplicate template key.");
+ return {sources,tags,fields,pipeline,emailTemplates};
 }
 export function cleanCustomValues(input:any,fields:CustomField[]) {
  const values:Record<string,string|number|boolean>={};
