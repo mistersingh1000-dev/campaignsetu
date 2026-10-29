@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { COOKIE_NAME, verifySession } from "@/lib/auth";
 import { getDb, findUser } from "@/lib/db";
 import { accessState } from "@/lib/entitlements";
-import { cleanSettings, defaultSettings } from "@/lib/crm-settings";
+import { cleanSettings, defaultSettings, getPipeline } from "@/lib/crm-settings";
 export const runtime="nodejs";
 async function context(write=false){
  const s=await verifySession((await cookies()).get(COOKIE_NAME)?.value);
@@ -22,8 +22,10 @@ export async function PUT(req:Request){
    const previous=await tx.get(c.ref!);
    const old=previous.data()?.fields||[];
    for(const field of old){const next=settings.fields.find(f=>f.id===field.id);if(!next||next.type!==field.type)throw Error("Existing field keys and types must be preserved.");}
+   const previousStages=getPipeline(previous.exists?previous.data() as any:defaultSettings);
+   for(const stage of previousStages)if(!settings.pipeline?.some(p=>p.id===stage.id))throw Error("Existing stage keys must be preserved.");
    tx.set(c.ref!,settings);
   });
   return NextResponse.json({settings});
- }catch{return NextResponse.json({error:"Check custom fields: unique keys, valid types and select options are required. Existing field keys and types cannot be removed or changed."},{status:400});}
+ }catch{return NextResponse.json({error:"Check custom fields: unique keys, valid types and select options are required. Existing field keys/types and stage keys cannot be removed or changed."},{status:400});}
 }

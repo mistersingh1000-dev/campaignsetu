@@ -1,8 +1,8 @@
 import type { Firestore } from "firebase-admin/firestore";
-import { cleanCustomValues, defaultSettings, type CrmSettings } from "./crm-settings";
+import { cleanCustomValues, defaultSettings, getPipeline, type CrmSettings } from "./crm-settings";
 import { createHash } from "node:crypto";
 export const stages = ["New", "Contacted", "Qualified", "Proposal", "Won", "Lost"] as const;
-export type Stage = typeof stages[number];
+export type Stage = string;
 export type Lead = { id: string; userId: string; name: string; phone: string; email: string; source: string; stage: Stage; notes: string; followUpAt: string | null; value: number; createdAt: string; updatedAt: string; facebookLeadId?: string; tags?: string[]; customValues?: Record<string,string|number|boolean>; rowColor?: string; followUpDone?: boolean; activity?: {at:string;text:string}[]; };
 export function cleanLead(input: any, requireContact = true, settings: CrmSettings = defaultSettings) {
   const name = String(input.name || "").trim().slice(0,120);
@@ -11,8 +11,9 @@ export function cleanLead(input: any, requireContact = true, settings: CrmSettin
   if (!name || (requireContact && !phone && !email)) throw new Error("Name and a phone number or email are required.");
   if (phone && !/^\+?[0-9]{7,15}$/.test(phone)) throw new Error("Invalid phone number.");
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Invalid email address.");
-  if (input.stage && !stages.includes(input.stage)) throw new Error("Invalid stage.");
-  const stage: Stage = stages.includes(input.stage) ? input.stage : "New";
+  const allowedStages=getPipeline(settings).map(p=>p.id);
+  if (input.stage && !allowedStages.includes(input.stage)) throw new Error("Invalid stage.");
+  const stage: Stage = allowedStages.includes(input.stage) ? input.stage : "New";
   const due = input.followUpAt ? new Date(input.followUpAt) : null;
   if (due && !Number.isFinite(due.getTime())) throw new Error("Invalid follow-up date.");
   const value = Number(input.value || 0);
