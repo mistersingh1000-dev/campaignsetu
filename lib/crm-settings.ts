@@ -12,7 +12,7 @@ export const defaultPipeline:PipelineStage[] = [
 export function getPipeline(settings:CrmSettings):PipelineStage[]{return settings.pipeline?.length?settings.pipeline:defaultPipeline;}
 export function renderEmailTemplate(template:EmailTemplate,lead:{name?:string;phone?:string;email?:string}){
  const render=(text:string)=>text.replace(/\{\{(name|phone|email)\}\}/g,(_,key)=>String(lead[key as keyof typeof lead]||""));
- return {subject:render(template.subject),body:render(template.body)};
+ return {subject:render(template.subject).replace(/[\r\n]+/g," "),body:render(template.body)};
 }
 export const defaultSources=["Manual","Facebook Lead Ads","WhatsApp","Instagram","Google Ads","Website","Referral","Import","Phone"];
 export const defaultSettings:CrmSettings={sources:defaultSources,tags:[],fields:[]};
