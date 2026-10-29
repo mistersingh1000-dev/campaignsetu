@@ -30,3 +30,24 @@ test("replayed Facebook leads deduplicate within a workspace without overwriting
  const other=await saveLead(db,"two@example.com",input,"123");
  assert.notEqual(a.id,other.id);assert.equal(map.size,2);
 });
+
+test("Facebook webhook rejects unsigned requests before accessing the database", async()=>{
+ const source=fs.readFileSync("app/api/webhooks/facebook-leads/route.ts","utf8");
+ const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+ const module={exports:{}};
+ const json=(body,init)=>({body,status:init?.status||200});
+ const deps={
+  "next/server":{NextResponse:{json}},
+  "@/lib/db":{getDb:()=>{throw Error("Must not access database");}},
+  "@/lib/credential-crypto":{decryptCredential:()=>{throw Error("Must not decrypt");}},
+  "@/lib/crm-db":{saveLead:()=>{throw Error("Must not save");}},
+ };
+ new Function("exports","require","module",compiled)(module.exports,n=>deps[n]||require(n),module);
+ const old=process.env.META_APP_SECRET;process.env.META_APP_SECRET="test-only-secret";
+ try {
+  for(const signature of [null,"sha256=wrong",""]) {
+   const response=await module.exports.POST({text:async()=>'{"object":"page"}',headers:{get:()=>signature}});
+   assert.equal(response.status,401);
+  }
+ }finally {if(old===undefined)delete process.env.META_APP_SECRET;else process.env.META_APP_SECRET=old;}
+});
