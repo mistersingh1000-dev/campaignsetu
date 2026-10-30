@@ -39,6 +39,7 @@ export async function POST(req:Request) {
     const fields:Record<string,string>={};
     for(const field of lead.field_data)if(typeof field.name==="string"&&Array.isArray(field.values))fields[field.name]=String(field.values[0]||"");
     await saveLead(db,owner.userId,{name:fields.full_name||[fields.first_name,fields.last_name].filter(Boolean).join(" ")||"Facebook lead",phone:fields.phone_number||"",email:fields.email||"",notes:"Form: "+String(lead.form_id||"")+"\n"+lead.field_data.map((f:any)=>String(f.name)+": "+(Array.isArray(f.values)?f.values.join(", "):"")).join("\n")},id);
+    await mapping.ref.update({lastLeadReceivedAt:new Date().toISOString()});
    }
   }
   return NextResponse.json({ok:true});
