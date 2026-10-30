@@ -1,5 +1,4 @@
 import EmbeddedSignupButton from "@/components/EmbeddedSignupButton";
-import ConnectNumber from "@/components/ConnectNumber";
 import { Icon } from "@/components/Icons";
 
 export const metadata = {
@@ -48,7 +47,6 @@ export default function ChannelsPage() {
         <p className="muted mt-4 max-w-3xl text-sm leading-relaxed">Keep your WhatsApp Business App installed and signed in. Choose only the existing Business App connection in Meta. If Meta does not offer coexistence for your account, stop and contact support. Do not delete your WhatsApp account or move the number through a standard registration flow.</p>
       </div>
 
-      <div className="mt-8"><ConnectNumber /></div>
     </section>
   );
 }
