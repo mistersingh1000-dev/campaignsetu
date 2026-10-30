@@ -4,21 +4,14 @@ import { COOKIE_NAME, verifySession } from "@/lib/auth";
 import { getDb, findUser } from "@/lib/db";
 import { createOrder, pendingOrderFor, findOrderByReference } from "@/lib/orders";
 import { sendEmail, customerOrderEmail, adminOrderEmail } from "@/lib/email";
-import { plans, site } from "@/lib/site";
+import { site } from "@/lib/site";
+import { purchasablePlans as plans, planMonths } from "@/lib/billing-catalog";
+import { crmPurchaseAllowed } from "@/lib/crm-plans";
 import { consumeRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-const DURATION_MONTHS: Record<string, number> = {
-  monthly: 1,
-  quarterly: 3,
-  halfyear: 6,
-  yearly: 12,
-  "3year": 36,
-  "5year": 60,
-  "10year": 120,
-  lifetime: 1200,
-};
+
 
 export async function GET() {
   const jar = await cookies();
@@ -60,7 +53,7 @@ export async function POST(req: Request) {
   const payerNote = String(body.note || "").trim().slice(0, 500);
 
   const plan = plans.find((p) => p.id === planId);
-  const months = DURATION_MONTHS[planId];
+  const months = planMonths(planId);
   if (!plan || !months) return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   if (!/^[A-Za-z0-9_-]{6,64}$/.test(reference)) {
     return NextResponse.json(
@@ -90,6 +83,8 @@ export async function POST(req: Request) {
 
     const user = await findUser(db, session.sub);
     if (!user) return NextResponse.json({ error: "user_not_found", message: "Your account record could not be found." }, { status: 404 });
+
+    try { crmPurchaseAllowed(user, plan.id); } catch(e:any) { return NextResponse.json({error:e.message},{status:409}); }
 
     const order = await createOrder(db, {
       userId: session.sub,

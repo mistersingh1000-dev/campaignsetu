@@ -1,0 +1,7 @@
+import { NextResponse } from "next/server";
+import { getAdminSession } from "@/lib/admin-auth";
+import { getDb } from "@/lib/db";
+import { updateSupportTicket } from "@/lib/support-tickets";
+export const runtime="nodejs";
+export async function GET(){if(!await getAdminSession())return NextResponse.json({error:"Administrator access required."},{status:403});const db=getDb();if(!db)return NextResponse.json({error:"Database unavailable."},{status:503});const snap=await db.collection("support_tickets").get();return NextResponse.json({tickets:snap.docs.map(d=>d.data()).sort((a,b)=>Number(a.status==="resolved")-Number(b.status==="resolved")||Number(b.priority==="high")-Number(a.priority==="high")||String(b.updatedAt).localeCompare(String(a.updatedAt))).slice(0,200)},{headers:{"Cache-Control":"no-store"}});}
+export async function PATCH(req:Request){const session=await getAdminSession();if(!session)return NextResponse.json({error:"Administrator access required."},{status:403});const site=process.env.NEXT_PUBLIC_SITE_URL;if(!site||req.headers.get("origin")!==new URL(site).origin)return NextResponse.json({error:"Invalid origin."},{status:403});const db=getDb();if(!db)return NextResponse.json({error:"Database unavailable."},{status:503});try{const input=await req.json(),ticket=await updateSupportTicket(db,String(input.id||""),session.sub,true,input);return ticket?NextResponse.json({ticket}):NextResponse.json({error:"Ticket not found."},{status:404});}catch(e:any){return NextResponse.json({error:e.message||"Unable to update ticket."},{status:400});}}

@@ -38,7 +38,7 @@ export default function Navbar() {
             </span>
           </Link>
 
-          <div className="hidden items-center gap-1 lg:flex">
+          <div className="hidden items-center gap-1 xl:flex">
             {nav.map((item) => {
               const active = pathname === item.href;
               return (
@@ -60,7 +60,7 @@ export default function Navbar() {
             <button
               onClick={() => setOpen((v) => !v)}
               aria-label="Toggle menu"
-              className="grid h-10 w-10 place-items-center rounded-full border lg:hidden"
+              className="grid h-10 w-10 place-items-center rounded-full border xl:hidden"
               style={{ borderColor: "var(--line)" }}
             >
               {open ? <Icon.close className="h-5 w-5" /> : <Icon.menu className="h-5 w-5" />}

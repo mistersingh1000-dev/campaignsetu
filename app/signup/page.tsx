@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/Icons";
 
 const perks = [
-  "Full API access for 7 days",
-  "Meta Embedded Signup included",
-  "Send real WhatsApp messages",
+  "All Pro CRM features for 7 days",
+  "Pipeline, follow-ups and lead management",
+  "No WhatsApp number needed for CRM",
   "No credit card required",
 ];
 
@@ -48,11 +48,10 @@ function SignupForm() {
       <div>
         <span className="eyebrow"><span className="h-1.5 w-1.5 rounded-full bg-emerald" /> 7-day free trial</span>
         <h1 className="mt-5 font-display text-4xl font-bold leading-tight sm:text-5xl">
-          Start sending on the <span className="gradient-text">official API</span> — free for 7 days
+          Grow with <span className="gradient-text">CampaignSetu CRM</span> — free for 7 days
         </h1>
         <p className="muted mt-5 max-w-md text-base leading-relaxed">
-          Create your account in seconds. Your trial unlocks the dashboard and API immediately and
-          auto-expires after 7 days — no charges, no surprises.
+          Create your account and explore all available Pro CRM features within Pro limits for 7 days. No payment or card required; no automatic charge. Facebook and WhatsApp integrations depend on Meta approval and eligibility.
         </p>
         <ul className="mt-8 grid max-w-md grid-cols-1 gap-3 sm:grid-cols-2">
           {perks.map((p) => (

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { COOKIE_NAME, verifySession } from "@/lib/auth";
 import { getDb, findUser } from "@/lib/db";
+import { crmAccess } from "@/lib/crm-plans";
 import { accessState } from "@/lib/entitlements";
 
 export const runtime = "nodejs";
@@ -44,6 +45,7 @@ export async function GET() {
     name,
     email: session.sub,
     plan,
+    crm: storedUser ? crmAccess(storedUser) : null,
     accessStatus: access.reason,
     trialEndsAt,
     accessEndsAt: access.accessEndsAt,
