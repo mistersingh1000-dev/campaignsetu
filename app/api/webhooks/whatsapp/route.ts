@@ -16,7 +16,10 @@ import {
 import { runInboundAutomations } from "@/lib/automation-engine";
 import { whatsappMessageAlreadyProcessed } from "@/lib/webhook-idempotency";
 
+import { digestCoexistenceChange } from "@/lib/coexistence-sync";
+
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function validMetaSignature(rawBody: string, signature: string | null): boolean {
   const appSecret = process.env.META_APP_SECRET;
@@ -78,12 +81,12 @@ export async function POST(req: Request) {
         const owners = await db
           .collection("users")
           .where("phone_number_id", "==", phoneNumberId)
-          .limit(1)
+          .limit(2)
           .get();
 
-        if (owners.empty) {
-          console.warn("No user for phone_number_id", phoneNumberId);
-          continue;
+        if (owners.docs.length !== 1) {
+          console.warn("Webhook phone owner is not uniquely available");
+          return NextResponse.json({ error: "phone_owner_pending" }, { status: 503 });
         }
 
         const owner = owners.docs[0].data() as any;
@@ -104,6 +107,8 @@ export async function POST(req: Request) {
             if (campaignId) campaignsToRefresh.add(campaignId);
           }
         }
+
+        if (await digestCoexistenceChange(db, owner, phoneNumberId, String(change.field || ""), value)) continue;
 
         for (const msg of value?.messages || []) {
           const from = msg?.from;
@@ -152,9 +157,9 @@ export async function POST(req: Request) {
             );
           }
 
-          await addMessage(db, userId, id, "contact", text, msg?.id || null);
+          const savedMessage = await addMessage(db, userId, id, "contact", text, msg?.id || null);
 
-          if (!optedOut) {
+          if (!optedOut && !savedMessage.duplicate) {
             // Automation failures must not make Meta retry the whole webhook;
             // log them and keep the inbound message safely stored.
             await runInboundAutomations({

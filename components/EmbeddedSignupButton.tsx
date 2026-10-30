@@ -16,8 +16,13 @@ const GRAPH_VERSION = process.env.NEXT_PUBLIC_META_GRAPH_VERSION || "v26.0";
 
 export default function EmbeddedSignupButton({ onConnected }: { onConnected?: () => void }) {
   const [status, setStatus] = useState<string>("");
+  const [pending, setPending] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [sync, setSync] = useState<{contacts:string;history:string;progress:number}|null>(null);
+  const [recovering, setRecovering] = useState(false);
+  const [access, setAccess] = useState<"checking" | "allowed" | "sign_in" | "inactive" | "unavailable">("checking");
   const codeRef = useRef<string | null>(null);
-  const signupRef = useRef<{ waba_id?: string; phone_number_id?: string }>({});
+  const signupRef = useRef<{ waba_id?: string; phone_number_id?: string; coexistence?: boolean }>({});
   const submittingRef = useRef(false);
 
   const ready =
@@ -26,10 +31,56 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
     Boolean(APP_ID) &&
     Boolean(CONFIG_ID);
 
+  const checkPending = useCallback(async () => {
+    try {
+      const response = await fetch("/api/embedded-signup/exchange", { cache: "no-store" });
+      if (response.status === 401) {
+        setAccess("sign_in");
+      } else if (response.ok) {
+        const state = await response.json();
+        setPending(state.pending === true);
+        setConnected(state.connected === true);
+        setSync(state.coexistence ? state.sync : null);
+        setAccess(state.canConnect === true ? "allowed" : "inactive");
+      } else {
+        setAccess("unavailable");
+      }
+    } catch {
+      setAccess("unavailable");
+    }
+  }, []);
+
+  useEffect(() => { void checkPending(); }, [checkPending]);
+
+  const resumeConnection = async () => {
+    if (recovering || access !== "allowed") return;
+    setRecovering(true);
+    setStatus("Resuming the saved Meta connection…");
+    try {
+      const res = await fetch("/api/embedded-signup/exchange", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data?.pending) setPending(true);
+        setStatus(data?.message || "Could not complete the saved connection. Contact support.");
+      } else {
+        setStatus("Meta account details are saved. Message delivery still requires Meta approval and end-to-end testing.");
+        onConnected?.();
+      }
+      await checkPending();
+    } catch {
+      setStatus("Could not reach the server. Your saved connection may still be pending; contact support before restarting signup.");
+    } finally {
+      setRecovering(false);
+    }
+  };
+
   const saveIfReady = useCallback(async () => {
     const code = codeRef.current;
-    const { waba_id, phone_number_id } = signupRef.current;
-    if (!code || !waba_id || !phone_number_id || submittingRef.current) return;
+    const { waba_id, phone_number_id, coexistence } = signupRef.current;
+    if (!code || !waba_id || (!coexistence && !phone_number_id) || submittingRef.current) return;
 
     submittingRef.current = true;
     setStatus("Finishing your WhatsApp API connection…");
@@ -38,7 +89,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
       const res = await fetch("/api/embedded-signup/exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, waba_id, phone_number_id }),
+        body: JSON.stringify({ code, waba_id, phone_number_id, coexistence: coexistence === true }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -51,7 +102,8 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
       }
 
       if (data?.registered === true) {
-        setStatus("Connected ✓ Your WhatsApp Business Account, phone number and webhook are connected.");
+        setStatus("Meta account details are saved. Message delivery still requires Meta approval and end-to-end testing.");
+        setPending(false);
       } else if (data?.needsRegistration) {
         setStatus(
           data?.message ||
@@ -61,12 +113,14 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         setStatus("Meta signup completed. Checking activation status…");
       }
       onConnected?.();
+      await checkPending();
     } catch {
-      setStatus("Could not reach the server to finish setup. Please try again.");
+      setStatus("Could not reach the server to finish setup. Check for a saved connection before starting signup again.");
+      await checkPending();
     } finally {
       submittingRef.current = false;
     }
-  }, [onConnected]);
+  }, [onConnected, checkPending]);
 
   useEffect(() => {
     if (!ready) return;
@@ -98,15 +152,20 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         if (data?.type !== "WA_EMBEDDED_SIGNUP") return;
 
-        if (data?.event === "FINISH") {
+        if (data?.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING") {
           const waba_id = data?.data?.waba_id;
-          const phone_number_id = data?.data?.phone_number_id;
-          if (waba_id && phone_number_id) {
-            signupRef.current = { waba_id, phone_number_id };
-            void saveIfReady();
+          if (!waba_id) {
+            setStatus("Meta did not return the WhatsApp account ID. Contact support before retrying.");
           } else {
-            setStatus("Meta finished signup but did not return the WhatsApp account IDs. Please contact support before retrying.");
+            signupRef.current = { waba_id, phone_number_id: data?.data?.phone_number_id, coexistence: true };
+            void saveIfReady();
           }
+        } else if (data?.event === "FINISH") {
+          // This button is exclusively for the existing Business App flow.
+          // Do not send a standard FINISH result to the registration endpoint.
+          codeRef.current = null;
+          signupRef.current = {};
+          setStatus("Meta did not confirm an existing Business App connection. No phone registration was started. Contact support before retrying.");
         } else if (data?.event === "CANCEL") {
           setStatus("Signup was cancelled before completion.");
         } else if (data?.event === "ERROR") {
@@ -121,7 +180,15 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
     return () => window.removeEventListener("message", onMessage);
   }, [ready, saveIfReady]);
 
-  const launch = () => {
+  const launch = (existingBusinessApp = false) => {
+    if (access !== "allowed") {
+      setStatus("Sign in with an active account before starting WhatsApp signup.");
+      return;
+    }
+    if (pending) {
+      setStatus("A connection is already pending. Use Resume connection instead of starting again.");
+      return;
+    }
     if (!ready || !window.FB) {
       setStatus("Meta Embedded Signup is not enabled yet. Please contact support.");
       return;
@@ -149,6 +216,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         extras: {
           setup: {},
           sessionInfoVersion: "3",
+          ...(existingBusinessApp ? { featureType: "whatsapp_business_app_onboarding" } : {}),
         },
       }
     );
@@ -164,15 +232,53 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
           </p>
         </div>
         <button
-          onClick={launch}
-          disabled={!ready}
+          onClick={() => launch(true)}
+          disabled={!ready || pending || connected || recovering || access !== "allowed"}
           title={ready ? "Open Meta Embedded Signup" : "Meta Embedded Signup is being configured"}
           className="btn-primary shrink-0 bg-[#1877F2] bg-none text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Icon.link className="h-5 w-5" />
-          Connect WhatsApp
+          {connected ? "WhatsApp connected" : "Connect WhatsApp"}
         </button>
       </div>
+
+      <p className="muted mt-4 text-sm">
+        Connect your existing WhatsApp Business App using the Meta-hosted coexistence flow. Keep the WhatsApp Business app installed and active on your phone.
+      </p>
+
+      {access === "sign_in" && (
+        <p className="mt-4 text-sm">Please <a href="/login" className="text-emerald underline">sign in</a> to your CampaignSetu account before connecting WhatsApp.</p>
+      )}
+      {access === "inactive" && <p className="mt-4 text-sm">An active trial or subscription is required to connect WhatsApp.</p>}
+      {access === "unavailable" && <p className="mt-4 text-sm">Connection status is unavailable. Please refresh or contact support.</p>}
+      {pending && (
+        <div className="mt-4 rounded-2xl border border-amber-500/40 p-4 text-sm">
+          <p>A previous Meta connection is saved but still needs completion. Do not start signup again.</p>
+          <button type="button" onClick={resumeConnection} disabled={recovering || access !== "allowed"} className="btn-ghost mt-3">
+            {recovering ? "Resuming…" : "Resume connection"}
+          </button>
+        </div>
+      )}
+
+      {sync && (
+        <div className="mt-4 text-sm" aria-live="polite">
+          <p>Contacts import: {sync.contacts}. History import: {sync.history}{sync.progress > 0 ? ` (${sync.progress}%)` : ""}.</p>
+          <p className="muted mt-1">A requested import is awaiting Meta webhook delivery. Imported history does not trigger chatbot replies.</p>
+          {(sync.contacts === "rejected" || sync.history === "rejected" || sync.history === "not_requested") && (
+            <button type="button" className="btn-ghost mt-2" disabled={recovering} onClick={async () => {
+              setRecovering(true);
+              try {
+                const response = await fetch("/api/embedded-signup/sync", {method:"POST"});
+                const result = await response.json();
+                setStatus(response.ok ? "Import requests checked. Refresh to see delivered history progress." : result.message || "Import needs support review.");
+                await checkPending();
+              } catch { setStatus("Could not check import requests. Contact support before retrying."); }
+              finally { setRecovering(false); }
+            }}>Check / resume import</button>
+          )}
+          {(sync.contacts === "uncertain" || sync.history === "uncertain") && <p>Meta acceptance is uncertain. Contact support; do not reconnect the number.</p>}
+        </div>
+      )}
 
       {status && (
         <div className="mt-5 rounded-2xl border border-emerald/30 bg-emerald/[0.06] px-4 py-3 text-sm">
