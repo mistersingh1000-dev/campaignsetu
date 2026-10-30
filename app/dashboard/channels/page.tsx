@@ -45,7 +45,7 @@ export default function ChannelsPage() {
       <div className="mt-8 rounded-3xl border p-6 md:p-8" style={{ borderColor: "var(--line)" }}>
         <h2 className="text-2xl font-bold">Already using WhatsApp Business App?</h2>
         <span className="mt-3 inline-flex rounded-full bg-emerald/15 px-3 py-1 text-xs font-bold text-emerald">COEXISTENCE</span>
-        <p className="muted mt-4 max-w-3xl text-sm leading-relaxed">Where Meta currently offers a supported coexistence or migration option for the selected account, follow the exact option shown inside Meta Embedded Signup. Do not delete the customer's existing WhatsApp account unless Meta explicitly requires it for that onboarding path.</p>
+        <p className="muted mt-4 max-w-3xl text-sm leading-relaxed">Keep your WhatsApp Business App installed and signed in. Choose only the existing Business App connection in Meta. If Meta does not offer coexistence for your account, stop and contact support. Do not delete your WhatsApp account or move the number through a standard registration flow.</p>
       </div>
 
       <div className="mt-8"><ConnectNumber /></div>
