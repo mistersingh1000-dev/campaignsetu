@@ -45,6 +45,11 @@ jobs:
 
       - name: Test Facebook customer onboarding
         run: node --test tests/facebook-onboarding.test.cjs
+      - name: Test coexistence recovery
+        run: node --test tests/coexistence-recovery.test.cjs
+
+      - name: Test coexistence synchronization and key compatibility
+        run: node --test tests/coexistence-sync.test.cjs tests/credential-crypto.test.cjs
 
       - name: Build
         run: npm run build

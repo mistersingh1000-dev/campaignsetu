@@ -1,4 +1,4 @@
-import { randomInt } from "node:crypto";
+import { createHash, randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { COOKIE_NAME, verifySession } from "@/lib/auth";
@@ -10,14 +10,32 @@ import {
   providerModeEnabled,
 } from "@/lib/meta-provider";
 import { accessState, paidFeatureError } from "@/lib/entitlements";
+import { hasPendingCoexistence, stageCoexistence, claimCoexistence, releaseCoexistence, finishCoexistence } from "@/lib/coexistence-pending";
+
+import { requestCoexistenceSync } from "@/lib/coexistence-sync-request";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function newRegistrationPin(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
 }
 
+export async function GET() {
+  const jar = await cookies();
+  const session = await verifySession(jar.get(COOKIE_NAME)?.value);
+  if (!session) return NextResponse.json({ pending: false }, { status: 401 });
+  const db = getDb();
+  if (!db) return NextResponse.json({ error: "database_not_configured" }, { status: 503 });
+  const user = await findUser(db, session.sub);
+  if (!user) return NextResponse.json({ authenticated: false }, { status: 401 });
+  const sync = (await db.collection("wa_coexistence_sync").doc(createHash("sha256").update(session.sub).digest("hex")).get()).data();
+  return NextResponse.json({ authenticated: true, canConnect: accessState(user).active, pending: await hasPendingCoexistence(db, session.sub), connected: user.wa_registered === true, coexistence: (user as any).wa_coexistence === true, sync: { contacts:sync?.smb_app_state_sync?.status || "not_requested", history:sync?.historyStatus || sync?.history?.status || "not_requested", progress:sync?.historyProgress || 0 } });
+}
+
 export async function POST(req: Request) {
+  const origin = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!origin || req.headers.get("origin") !== new URL(origin).origin) return NextResponse.json({ error: "invalid_origin" }, { status: 403 });
   const jar = await cookies();
   const session = await verifySession(jar.get(COOKIE_NAME)?.value);
   if (!session) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
@@ -38,43 +56,87 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: denied.error, message: denied.message }, { status: denied.status });
   }
 
-  const { code, waba_id, phone_number_id } = await req.json().catch(() => ({}));
-  if (!code || !waba_id || !phone_number_id) {
-    return NextResponse.json(
-      { error: "missing_signup_result", message: "Meta signup did not return all required values. Please try again." },
-      { status: 400 }
-    );
+  const input = await req.json().catch(() => ({}));
+  const resume = input.resume === true;
+  const coexistence = input.coexistence === true || resume;
+  const { code, waba_id, phone_number_id } = input;
+  if (!resume && (!code || !waba_id || (!coexistence && !phone_number_id))) {
+    return NextResponse.json({ error: "missing_signup_result", message: "Meta signup did not return all required values." }, { status: 400 });
+  }
+  if (!resume && coexistence && (!/^\d+$/.test(String(waba_id)) || (phone_number_id && !/^\d+$/.test(String(phone_number_id))))) {
+    return NextResponse.json({ error: "invalid_signup_result" }, { status: 400 });
   }
 
   const appId = process.env.NEXT_PUBLIC_META_APP_ID;
   const appSecret = process.env.META_APP_SECRET;
   const version = process.env.WHATSAPP_API_VERSION || "v26.0";
   if (!appId || !appSecret) {
-    return NextResponse.json(
-      { error: "meta_not_configured", message: "Meta Embedded Signup is not configured on the server." },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: "meta_not_configured", message: "Meta Embedded Signup is not configured on the server." }, { status: 503 });
   }
 
   let signupAccessToken = "";
-  try {
-    const tokenRes = await fetch(
-      `https://graph.facebook.com/${version}/oauth/access_token?client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}&code=${encodeURIComponent(String(code))}`,
-      { cache: "no-store" }
-    );
-    const tokenData = await tokenRes.json().catch(() => ({}));
-    if (!tokenRes.ok || !tokenData?.access_token) {
-      return NextResponse.json(
-        { error: "token_exchange_failed", message: tokenData?.error?.message || "Meta could not finish authorization." },
-        { status: 502 }
-      );
+  if (!resume) {
+    if (coexistence && await hasPendingCoexistence(db, session.sub)) {
+      return NextResponse.json({ error: "coexistence_pending", pending: true, message: "Your previous connection is pending. Resume it instead of starting again." }, { status: 409 });
     }
-    signupAccessToken = tokenData.access_token;
-  } catch {
-    return NextResponse.json(
-      { error: "meta_unreachable", message: "Could not reach Meta to finish authorization." },
-      { status: 502 }
-    );
+    try {
+      const tokenRes = await fetch(
+        `https://graph.facebook.com/${version}/oauth/access_token?client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}&code=${encodeURIComponent(String(code))}`,
+        { cache: "no-store" }
+      );
+      const tokenData = await tokenRes.json().catch(() => ({}));
+      if (!tokenRes.ok || !tokenData?.access_token) {
+        return NextResponse.json({ error: "token_exchange_failed", message: "Meta could not finish authorization. Contact support before retrying." }, { status: 502 });
+      }
+      signupAccessToken = tokenData.access_token;
+    } catch {
+      return NextResponse.json({ error: "meta_unreachable", message: "The authorization result is uncertain. Contact support before starting again." }, { status: 502 });
+    }
+    if (coexistence) {
+      try {
+        const staged = await stageCoexistence(db, session.sub, String(waba_id), phone_number_id ? String(phone_number_id) : null, signupAccessToken);
+        if (!staged) return NextResponse.json({ error: "coexistence_pending", pending: true, message: "A connection is already pending. Resume it instead of starting again." }, { status: 409 });
+      } catch {
+        return NextResponse.json({ error: "coexistence_save_failed", message: "Meta linked the account, but the server could not save the connection securely. Contact support before retrying." }, { status: 503 });
+      }
+    }
+  }
+
+  if (coexistence) {
+    let lease: Awaited<ReturnType<typeof claimCoexistence>> = null;
+    try {
+      lease = await claimCoexistence(db, session.sub);
+      if (!lease) return NextResponse.json({ error: "coexistence_unavailable", pending: await hasPendingCoexistence(db, session.sub), message: "A connection may already be processing. Wait and use Resume connection." }, { status: 409 });
+      if (providerModeEnabled()) {
+        return NextResponse.json({ error: "coexistence_provider_unavailable", pending: true, message: "Provider-mode coexistence is not configured. Contact support before retrying." }, { status: 503 });
+      }
+      const url = `https://graph.facebook.com/${version}/${encodeURIComponent(lease.wabaId)}/phone_numbers?fields=id,display_phone_number,verified_name,is_on_biz_app,platform_type&limit=100`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${lease.token}` }, cache: "no-store" });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !Array.isArray(result.data) || result.paging?.next) {
+        return NextResponse.json({ error: "coexistence_discovery_failed", pending: true, message: "Could not safely identify the linked number. Resume later or contact support." }, { status: 502 });
+      }
+      const candidates = result.data.filter((p: any) => /^\d+$/.test(String(p.id || "")) && p.is_on_biz_app === true && p.platform_type === "CLOUD_API" && (!lease!.phoneId || String(p.id) === lease!.phoneId));
+      if (candidates.length !== 1) {
+        return NextResponse.json({ error: "coexistence_number_ambiguous", pending: true, message: "The linked Business App number could not be uniquely verified. Contact support." }, { status: 409 });
+      }
+      const phone = candidates[0];
+      const subscribe = await fetch(`https://graph.facebook.com/${version}/${encodeURIComponent(lease.wabaId)}/subscribed_apps`, {
+        method: "POST", headers: { Authorization: `Bearer ${lease.token}` }, cache: "no-store",
+      });
+      const subData = await subscribe.json().catch(() => ({}));
+      if (!subscribe.ok || subData?.success !== true) {
+        return NextResponse.json({ error: "webhook_subscription_failed", pending: true, message: "Webhook subscription failed. Your pending connection is saved; use Resume connection." }, { status: 502 });
+      }
+      const outcome = await finishCoexistence(db, session.sub, lease.leaseId, String(phone.id));
+      if (outcome !== "ok") return NextResponse.json({ error: "coexistence_" + outcome, pending: true, message: "The phone is already assigned or the request expired. Contact support." }, { status: 409 });
+      const sync = await requestCoexistenceSync(db, session.sub).catch(() => ({ contacts: "pending", history: "pending" }));
+      return NextResponse.json({ ok: true, registered: true, coexistence: true, sync, waba_id: lease.wabaId, phone_number_id: String(phone.id), display_phone_number: phone.display_phone_number || null });
+    } catch {
+      return NextResponse.json({ error: "coexistence_setup_failed", pending: true, message: "Connection is pending. Use Resume connection or contact support." }, { status: 502 });
+    } finally {
+      if (lease) await releaseCoexistence(db, session.sub, lease.leaseId).catch(() => {});
+    }
   }
 
   let phoneDetails: any = null;
