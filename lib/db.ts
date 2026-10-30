@@ -27,6 +27,11 @@ export type AppUser = {
   company_city?: string | null;
   company_industry?: string | null;
   company_address?: string | null;
+  crm_tier?: string;
+  crm_status?: string;
+  crm_cycle?: string;
+  crm_ends_at?: string;
+  crm_trial_ends_at?: string;
   created_at: string; // ISO
 };
 

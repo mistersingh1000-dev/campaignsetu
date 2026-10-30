@@ -1,3 +1,4 @@
+import { crmActivation, crmOffer } from "./crm-plans";
 import type { Firestore } from "firebase-admin/firestore";
 
 export type RazorpayOrderRecord = {
@@ -61,13 +62,14 @@ export async function activateRazorpayOrder(
 
     const user = userSnap.data() as any;
     const now = new Date();
+    const crm = crmOffer(order.planId) ? crmActivation(user, order.planId, now) : null;
     const currentExpiry = new Date(user?.trial_ends_at || 0);
     const base = currentExpiry > now ? new Date(currentExpiry) : now;
     base.setMonth(base.getMonth() + order.months);
-    const validUntil = base.toISOString();
+    const validUntil = crm?.crm_ends_at || base.toISOString();
     const paidAt = new Date().toISOString();
 
-    tx.update(userRef, { plan: "paid", trial_ends_at: validUntil });
+    tx.update(userRef, crm || { plan: "paid", trial_ends_at: validUntil });
     tx.update(orderRef, {
       status: "paid",
       paymentId,

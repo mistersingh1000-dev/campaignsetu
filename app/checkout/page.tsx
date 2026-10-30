@@ -1,8 +1,9 @@
 "use client";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { plans, site } from "@/lib/site";
+import { site } from "@/lib/site";
+import { purchasablePlans as plans } from "@/lib/billing-catalog";
 import { Icon } from "@/components/Icons";
 
 declare global {
@@ -36,6 +37,9 @@ function Checkout() {
   const params = useSearchParams();
   const planId = params.get("plan") || "";
   const plan = plans.find((p) => p.id === planId);
+
+  const [onlineAvailable,setOnlineAvailable] = useState(false);
+  useEffect(()=>{fetch("/api/payments/razorpay",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>setOnlineAvailable(d?.onlineCheckoutAvailable===true)).catch(()=>setOnlineAvailable(false));},[]);
 
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
@@ -169,7 +173,7 @@ function Checkout() {
           <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald/15 text-emerald"><Icon.check className="h-7 w-7" /></span>
           <h1 className="font-display mt-4 text-2xl font-bold">Payment verified — plan active</h1>
           <p className="muted mt-3 text-sm leading-relaxed">Your <b>{plan.name}</b> subscription was verified server-side and your access has been extended automatically.</p>
-          <Link href="/dashboard" className="btn-primary mt-6 inline-flex">Open dashboard</Link>
+          <Link href={plan.id.startsWith("crm_")?"/dashboard/lead-crm":"/dashboard"} className="btn-primary mt-6 inline-flex">Open dashboard</Link>
         </div>
       </div>
     );
@@ -182,7 +186,7 @@ function Checkout() {
           <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald/15 text-emerald"><Icon.check className="h-7 w-7" /></span>
           <h1 className="font-display mt-4 text-2xl font-bold">Payment submitted</h1>
           <p className="muted mt-3 text-sm leading-relaxed">Your <b>{plan.name}</b> UPI payment is under review. You will receive an email when the admin activates it.</p>
-          <Link href="/dashboard" className="btn-primary mt-6 inline-flex">Back to dashboard</Link>
+          <Link href={plan.id.startsWith("crm_")?"/dashboard/lead-crm":"/dashboard"} className="btn-primary mt-6 inline-flex">Back to dashboard</Link>
         </div>
       </div>
     );
@@ -191,13 +195,14 @@ function Checkout() {
   return (
     <div className="container-px py-14">
       <div className="mx-auto max-w-4xl">
-        <Link href="/pricing" className="muted text-sm hover:text-emerald">← Back to pricing</Link>
+        <Link href={plan.id.startsWith("crm_")?"/crm-pricing":"/pricing"} className="muted text-sm hover:text-emerald">← Back to pricing</Link>
         <h1 className="font-display mt-4 text-3xl font-bold">Complete your payment</h1>
-        <p className="muted mt-2 text-sm">Choose instant secure checkout or use the manual UPI fallback.</p>
+        <p className="muted mt-2 text-sm">{onlineAvailable?"Choose secure online checkout or submit your manual UPI payment for verification.":"Pay by UPI and submit your transaction reference. Your plan starts after administrator verification."}</p>
+        {plan.id.startsWith("crm_")&&<p className="mt-3 rounded-xl border p-3 text-sm">This is a prepaid CRM plan. It does not renew automatically or extend WhatsApp/API platform access. For a tier change during an active paid term, raise a support ticket before paying.</p>}
 
         {error && <div className="mt-6 rounded-xl border border-amber-500/40 bg-amber-500/[0.07] px-4 py-3 text-sm text-amber-300">{error}</div>}
 
-        <div className="mt-8 card border-emerald/40 p-6">
+        {onlineAvailable && <div className="mt-8 card border-emerald/40 p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-medium text-emerald">RECOMMENDED · INSTANT ACTIVATION</p>
@@ -213,9 +218,10 @@ function Checkout() {
           </div>
         </div>
 
-        <div className="my-8 flex items-center gap-4"><div className="h-px flex-1 bg-white/10" /><span className="muted text-xs">OR MANUAL UPI</span><div className="h-px flex-1 bg-white/10" /></div>
+        }
+        {onlineAvailable && <div className="my-8 flex items-center gap-4"><div className="h-px flex-1 bg-white/10" /><span className="muted text-xs">OR MANUAL UPI</span><div className="h-px flex-1 bg-white/10" /></div>}
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
           <div className="card p-6">
             <div className="flex items-baseline justify-between">
               <div><p className="muted text-xs">You are buying</p><p className="font-display text-lg font-semibold">{plan.name}</p></div>

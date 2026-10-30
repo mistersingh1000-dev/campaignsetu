@@ -51,5 +51,8 @@ jobs:
       - name: Test coexistence synchronization and key compatibility
         run: node --test tests/coexistence-sync.test.cjs tests/credential-crypto.test.cjs
 
+      - name: Test CRM billing, quotas and support tickets
+        run: node --test tests/crm-subscriptions.test.cjs
+
       - name: Build
         run: npm run build

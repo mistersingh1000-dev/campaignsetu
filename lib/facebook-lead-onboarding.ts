@@ -1,3 +1,4 @@
+import { assertCrmCount, requireCrmAccess } from "./crm-plans";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { encryptCredential, decryptCredential } from "./credential-crypto";
@@ -91,6 +92,9 @@ export async function connectFacebookPage(db: Firestore, userId: string, page: C
   const allowed = await db.runTransaction(async tx => {
     const current = await tx.get(ref);
     if (current.exists && current.data()?.userId !== userId) return false;
+    const [account, pages]=await Promise.all([tx.get(db.collection("users").doc(userId)),tx.get(db.collection("crm_facebook_pages").where("userId","==",userId))]);
+    requireCrmAccess(account.data()||{});
+    if(!current.exists)assertCrmCount(account.data()||{},"pages",pages.docs.length);
     tx.set(ref, { userId, name: page.name, token: page.encryptedToken, status: "pending", updatedAt: new Date().toISOString() }, { merge: true });
     return true;
   });

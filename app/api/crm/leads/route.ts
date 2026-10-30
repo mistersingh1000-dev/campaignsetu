@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { COOKIE_NAME, verifySession } from "@/lib/auth";
 import { findUser, getDb } from "@/lib/db";
-import { accessState } from "@/lib/entitlements";
+import { crmAccess, CrmPlanError } from "@/lib/crm-plans";
 import { cleanLead, saveLead } from "@/lib/crm-db";
 import { defaultSettings, type CrmSettings } from "@/lib/crm-settings";
 export const runtime = "nodejs";
@@ -13,7 +13,7 @@ async function context(write = false) {
   if (!db) return { error: NextResponse.json({error:"Database unavailable."},{status:503}) };
   const user = await findUser(db, session.sub);
   if (!user) return { error: NextResponse.json({error:"Account not found."},{status:404}) };
-  if (write && !accessState(user).active) return {error:NextResponse.json({error:"An active plan is required."},{status:403})};
+  if (write && !crmAccess(user).active) return {error:NextResponse.json({error:"An active CRM trial or subscription is required."},{status:403})};
   return { db, userId: user.email };
 }
 export async function GET(req: Request) {
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const c = await context(true); if(c.error) return c.error;
   try { const lead = await saveLead(c.db!, c.userId!, await req.json()); return NextResponse.json({lead},{status:201}); }
-  catch { return NextResponse.json({error:"Enter a name, valid contact details, date and deal value."},{status:400}); }
+  catch(e) { return e instanceof CrmPlanError ? NextResponse.json({error:e.message,code:e.code,upgrade:"/crm-pricing"},{status:402}) : NextResponse.json({error:"Enter a name, valid contact details, date and deal value."},{status:400}); }
 }
 export async function PATCH(req: Request) {
   const c = await context(true); if(c.error) return c.error;

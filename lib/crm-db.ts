@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { cleanCustomValues, defaultSettings, getPipeline, type CrmSettings } from "./crm-settings";
+import { assertCrmCount } from "./crm-plans";
 import { createHash } from "node:crypto";
 export const stages = ["New", "Contacted", "Qualified", "Proposal", "Won", "Lost"] as const;
 export type Stage = string;
@@ -28,12 +29,18 @@ export async function saveLead(db: Firestore, userId: string, input: any, facebo
   const config = await db.collection("crm_settings").doc(userId).get();
   const fields = cleanLead(input, !facebookLeadId, (config.data() as CrmSettings) || defaultSettings);
   const ref = facebookLeadId ? db.collection("crm_leads").doc(createHash("sha256").update(userId + ":" + facebookLeadId).digest("hex")) : db.collection("crm_leads").doc();
+  const usageRef=db.collection("crm_usage").doc(userId);
+  const usage=await usageRef.get();
+  const initialCount=usage.exists?Number(usage.data()?.leads)||0:(await db.collection("crm_leads").where("userId","==",userId).count().get()).data().count;
   return db.runTransaction(async tx => {
-    const previous = await tx.get(ref);
+    const [previous,counter,account] = await Promise.all([tx.get(ref),tx.get(usageRef),tx.get(db.collection("users").doc(userId))]);
     if (previous.exists) return previous.data() as Lead;
+    const count=counter.exists?Number(counter.data()?.leads)||0:initialCount;
+    assertCrmCount(account.data() || {}, "leads", count);
     const now = new Date().toISOString();
     const lead: Lead = { ...fields, id: ref.id, userId, source: facebookLeadId ? "Facebook Lead Ads" : fields.source, createdAt: now, updatedAt: now, activity:[{at:now,text:"Lead created"}], ...(facebookLeadId ? {facebookLeadId} : {}) };
     tx.create(ref, lead);
+    tx.set(usageRef,{leads:count+1,updatedAt:now},{merge:true});
     return lead;
   });
 }

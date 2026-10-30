@@ -7,7 +7,7 @@ export const site = {
   tagline: "Independent business messaging, onboarding and automation",
   description:
     "Connect customer-owned WhatsApp Business Platform accounts through Meta Embedded Signup, manage conversations and contacts, run consented template campaigns, and automate inbound replies from one dashboard.",
-  email: "mistersingh1000@gmail.com",
+  email: "codecraftm@gmail.com",
   phone: "+91 70097 32517",
   whatsapp: "917009732517",
   whatsappMessage: "Hi, I am interested in the CampaignSetu platform.",
@@ -21,7 +21,8 @@ export const site = {
 export const nav = [
   { label: "Home", href: "/" },
   { label: "Features", href: "/features" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "API Pricing", href: "/pricing" },
+  { label: "CRM Pricing", href: "/crm-pricing" },
   { label: "API Setup", href: "/api-setup" },
   { label: "Embedded Signup", href: "/embedded-signup" },
   { label: "Dashboard", href: "/dashboard" },
@@ -32,7 +33,8 @@ export const footerLinks = {
   Product: [
     { label: "Home", href: "/" },
     { label: "Features", href: "/features" },
-    { label: "Pricing", href: "/pricing" },
+    { label: "API Pricing", href: "/pricing" },
+    { label: "CRM Pricing", href: "/crm-pricing" },
     { label: "Dashboard", href: "/dashboard" },
   ],
   Developers: [
@@ -43,7 +45,7 @@ export const footerLinks = {
   ],
   Company: [
     { label: "Contact", href: "/contact" },
-    { label: "Support", href: "/contact" },
+    { label: "Support tickets", href: "/dashboard/support" },
     { label: "FAQ", href: "/faq" },
   ],
   Legal: [

@@ -1,12 +1,8 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript'),crypto=require('node:crypto');
 function load(path,deps={}){const compiled=ts.transpileModule(fs.readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;const m={exports:{}};new Function('exports','require','module',compiled)(m.exports,n=>n in deps?deps[n]:require(n),m);return m.exports;}
 const credential=load('lib/credential-crypto.ts');
-const api=load('lib/facebook-lead-onboarding.ts',{'./credential-crypto':credential});
-class DB{
- constructor(){this.map=new Map();this.queue=Promise.resolve();}
- collection(name){const db=this;return {doc(id){const key=name+'/'+id;return {key,get:async()=>({exists:db.map.has(key),data:()=>db.map.get(key)}),create:async v=>{if(db.map.has(key))throw Error('exists');db.map.set(key,v);},set:async v=>db.map.set(key,v),update:async v=>db.map.set(key,{...db.map.get(key),...v})};}};}
- runTransaction(fn){const p=this.queue.then(async()=>{const writes=[];const result=await fn({get:r=>r.get(),delete:r=>writes.push(()=>this.map.delete(r.key)),set:(r,v,opts)=>writes.push(()=>this.map.set(r.key,opts?.merge?{...this.map.get(r.key),...v}:v))});writes.forEach(w=>w());return result;});this.queue=p.catch(()=>{});return p;}
-}
+const api=load('lib/facebook-lead-onboarding.ts',{'./credential-crypto':credential,'./crm-plans':load('lib/crm-plans.ts')});
+const DB=require('./test-helpers.cjs').DB;
 process.env.AUTH_SECRET='tests-only-encryption-key';process.env.NEXT_PUBLIC_META_APP_ID='app';process.env.META_APP_SECRET='secret';process.env.NEXT_PUBLIC_SITE_URL='https://example.com';process.env.FACEBOOK_LEAD_LOGIN_CONFIG_ID='configuration';
 test('OAuth state is random, user-bound, cookie-bound and single use',async()=>{
  const db=new DB(),login=await api.beginFacebookLeadLogin(db,'owner@example.com');const url=new URL(login.url);
@@ -26,7 +22,7 @@ test('missing permission blocks discovery before any Page tokens are requested',
  let calls=0;await assert.rejects(()=>api.discoverFacebookPages('code',async url=>{calls++;return {ok:true,json:async()=>url.endsWith('access_token')?{access_token:'token'}:{data:[]}};}),/permissions_missing/);assert.equal(calls,2);
 });
 test('staged Pages expire, cannot be selected by another user, and foreign workspace claims are preserved',async()=>{
- const db=new DB(),page={id:'123',name:'Page',encryptedToken:credential.encryptCredential('page-private-token')};await api.stageFacebookPages(db,'owner@example.com',[page]);assert.equal((await api.pendingFacebookPages(db,'owner@example.com')).length,1);assert.equal(await api.selectedFacebookPage(db,'other@example.com','123'),null);
+ const db=new DB();db.map.set('users/owner@example.com',{plan:'free'});const page={id:'123',name:'Page',encryptedToken:credential.encryptCredential('page-private-token')};await api.stageFacebookPages(db,'owner@example.com',[page]);assert.equal((await api.pendingFacebookPages(db,'owner@example.com')).length,1);assert.equal(await api.selectedFacebookPage(db,'other@example.com','123'),null);
  db.map.set('crm_facebook_pages/123',{userId:'other@example.com',token:'other-token'});let called=false;await assert.rejects(()=>api.connectFacebookPage(db,'owner@example.com',page,async()=>{called=true;throw Error();}),/page_workspace_conflict/);assert.equal(called,false);assert.equal(db.map.get('crm_facebook_pages/123').userId,'other@example.com');
  db.map.delete('crm_facebook_pages/123');let failed=await assert.rejects(()=>api.connectFacebookPage(db,'owner@example.com',page,async()=>({ok:false,json:async()=>({})})),/subscription_failed/);assert.equal(db.map.get('crm_facebook_pages/123').status,'subscription_failed');assert.equal(credential.decryptCredential(db.map.get('crm_facebook_pages/123').token),'page-private-token');
  const selected=await api.selectedFacebookPage(db,'owner@example.com','123');const result=await api.connectFacebookPage(db,'owner@example.com',selected,async()=>({ok:true,json:async()=>({success:true})}));assert.equal(result.status,'subscribed');assert.ok(!JSON.stringify(result).includes('token'));

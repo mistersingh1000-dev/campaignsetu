@@ -5,7 +5,7 @@ const ts = require("typescript");
 const compiled=ts.transpileModule(fs.readFileSync("lib/crm-db.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 const settingsCode=ts.transpileModule(fs.readFileSync("lib/crm-settings.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 const settingsModule={exports:{}};new Function("exports","require","module",settingsCode)(settingsModule.exports,require,settingsModule);
-const m={exports:{}};new Function("exports","require","module",compiled)(m.exports,n=>n==="./crm-settings"?settingsModule.exports:require(n),m);
+const m={exports:{}};new Function("exports","require","module",compiled)(m.exports,n=>n==="./crm-settings"?settingsModule.exports:n==="./crm-plans"?require("./test-helpers.cjs").load("lib/crm-plans.ts"):require(n),m);
 const {cleanLead,saveLead}=m.exports;
 test("lead validation rejects invalid contact, stage, dates and values",()=>{
  for(const input of [
@@ -17,20 +17,15 @@ test("lead validation rejects invalid contact, stage, dates and values",()=>{
  assert.equal(cleanLead({name:"Lead"},false).name,"Lead");
 });
 test("replayed Facebook leads deduplicate within a workspace without overwriting edits",async()=>{
- const map=new Map();let serial=Promise.resolve();let n=0;
- const db={collection:()=>({doc:(id)=>({id:id||String(++n),get:async()=>({data:()=>undefined})})}),runTransaction:(fn)=>{
-  const p=serial.then(async()=>{
-   const writes=[];const value=await fn({get:async r=>({exists:map.has(r.id),data:()=>map.get(r.id)}),create:(r,v)=>writes.push(()=>map.set(r.id,v))});
-   writes.forEach(f=>f());return value;
-  });serial=p.catch(()=>{});return p;
- }};
+ const db=new (require("./test-helpers.cjs").DB)();const map=db.map;
+ for(const email of ["one@example.com","two@example.com"])map.set("users/"+email,{plan:"free",email});
  const input={name:"Customer",email:"customer@example.com"};
  const [a,b]=await Promise.all([saveLead(db,"one@example.com",input,"123"),saveLead(db,"one@example.com",input,"123")]);
- assert.equal(a.id,b.id);assert.equal(map.size,1);
- map.set(a.id,{...a,stage:"Won",notes:"Do not overwrite"});
+ assert.equal(a.id,b.id);assert.equal([...map.keys()].filter(k=>k.startsWith("crm_leads/")).length,1);
+ map.set("crm_leads/"+a.id,{...a,stage:"Won",notes:"Do not overwrite"});
  const replay=await saveLead(db,"one@example.com",input,"123");assert.equal(replay.stage,"Won");
  const other=await saveLead(db,"two@example.com",input,"123");
- assert.notEqual(a.id,other.id);assert.equal(map.size,2);
+ assert.notEqual(a.id,other.id);assert.equal([...map.keys()].filter(k=>k.startsWith("crm_leads/")).length,2);
 });
 
 test("Facebook webhook rejects unsigned requests before accessing the database", async()=>{

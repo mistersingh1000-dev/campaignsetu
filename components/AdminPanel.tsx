@@ -150,6 +150,7 @@ export default function AdminPanel() {
         <p className="muted mt-2">Manage customers, plans, payments and WhatsApp activation status.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <a href="/admin/system-health" className="btn-primary text-xs">System Health</a>
+          <a href="/admin/tickets" className="btn-ghost text-xs">Support tickets</a>
           <a href="/admin/orders" className="btn-ghost text-xs">Payments</a>
           <a href="/admin/enquiries" className="btn-ghost text-xs">Enquiries</a>
           <a href="/admin/conversations" className="btn-ghost text-xs">Conversations</a>

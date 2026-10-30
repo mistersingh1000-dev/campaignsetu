@@ -1,4 +1,5 @@
 // Manual UPI orders: customer pays by QR, admin approves in the dashboard.
+import { crmActivation, crmOffer } from "./crm-plans";
 import type { Firestore } from "firebase-admin/firestore";
 
 export type OrderStatus = "pending" | "approved" | "rejected";
@@ -133,13 +134,14 @@ export async function approveOrderAndExtend(
 
     const user = userSnap.data() as any;
     const now = new Date();
+    const crm = crmOffer(order.planId) ? crmActivation(user, order.planId, now) : null;
     const currentExpiry = new Date(user?.trial_ends_at || 0);
     const base = currentExpiry > now ? currentExpiry : now;
     base.setMonth(base.getMonth() + order.months);
-    const validUntil = base.toISOString();
+    const validUntil = crm?.crm_ends_at || base.toISOString();
     const decidedAt = new Date().toISOString();
 
-    tx.update(userRef, { plan: "paid", trial_ends_at: validUntil });
+    tx.update(userRef, crm || { plan: "paid", trial_ends_at: validUntil });
     tx.update(orderRef, { status: "approved", decidedAt, decidedBy });
 
     return {

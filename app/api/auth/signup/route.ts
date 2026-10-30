@@ -4,6 +4,8 @@ import { COOKIE_NAME, createSession, newTrialEnd, TRIAL_DAYS, authConfigured } f
 import { getDb, findUser, createUser, normEmail } from "@/lib/db";
 import { consumeRateLimit, rateLimitResponse, requestIp } from "@/lib/rate-limit";
 
+import { CRM_TRIAL_DAYS } from "@/lib/crm-plans";
+
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
@@ -60,6 +62,9 @@ export async function POST(req: Request) {
       email: cleanEmail,
       name: String(name || cleanEmail).trim().slice(0, 120),
       password_hash,
+      crm_tier: "pro",
+      crm_status: "trial",
+      crm_trial_ends_at: new Date(Date.now() + CRM_TRIAL_DAYS * 86400000).toISOString(),
       plan: "trial",
       trial_ends_at: trialEndsAt,
       waba_id: null,

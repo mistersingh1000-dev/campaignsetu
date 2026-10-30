@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { crmRequestContext } from "@/lib/crm-request-context";
 import { oauthConfigured, pendingFacebookPages, selectedFacebookPage, connectFacebookPage } from "@/lib/facebook-lead-onboarding";
+import { CrmPlanError } from "@/lib/crm-plans";
 export const runtime="nodejs";
 export async function GET() {
  const c=await crmRequestContext();if(c.error)return c.error;
@@ -23,6 +24,7 @@ export async function POST(req:Request) {
   const connected=await connectFacebookPage(c.db!,c.user!.email,page);
   return NextResponse.json({page:connected});
  }catch(e:any){
+  if(e instanceof CrmPlanError)return NextResponse.json({error:e.message,code:e.code},{status:402});
   const conflict=e?.message==="page_workspace_conflict";
   return NextResponse.json({error:conflict?"This Page is assigned to another workspace. Contact support before transferring it.":"Meta could not enable lead capture. Your Page authorization is retained for retry. Check Page permissions and app review."},{status:conflict?409:502});
  }

@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { COOKIE_NAME, verifySession } from "@/lib/auth";
 import { findUser, getDb } from "@/lib/db";
-import { plans } from "@/lib/site";
+import { purchasablePlans as plans, planMonths } from "@/lib/billing-catalog";
+import { crmPurchaseAllowed } from "@/lib/crm-plans";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   activateRazorpayOrder,
@@ -14,16 +15,7 @@ import { activationEmail, sendEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
-const DURATION_MONTHS: Record<string, number> = {
-  monthly: 1,
-  quarterly: 3,
-  halfyear: 6,
-  yearly: 12,
-  "3year": 36,
-  "5year": 60,
-  "10year": 120,
-  lifetime: 1200,
-};
+
 
 function credentials() {
   const keyId = process.env.RAZORPAY_KEY_ID?.trim();
@@ -55,6 +47,10 @@ async function sessionContext() {
   return { session, db, user };
 }
 
+export async function GET() {
+  return NextResponse.json({ onlineCheckoutAvailable: Boolean(credentials()) }, {headers:{"Cache-Control":"no-store"}});
+}
+
 export async function POST(req: Request) {
   const ctx = await sessionContext();
   if (!ctx) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
@@ -80,8 +76,10 @@ export async function POST(req: Request) {
 
   const { planId } = await req.json().catch(() => ({}));
   const plan = plans.find((p) => p.id === String(planId || ""));
-  const months = plan ? DURATION_MONTHS[plan.id] : 0;
+  const months = plan ? planMonths(plan.id) : 0;
   if (!plan || !months) return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
+
+  try { crmPurchaseAllowed(ctx.user, plan.id); } catch(e:any) { return NextResponse.json({error:e.message},{status:409}); }
 
   const amountPaise = Math.round(plan.price * 100);
   const receipt = `wcp_${Date.now().toString(36)}_${randomUUID().slice(0, 8)}`;

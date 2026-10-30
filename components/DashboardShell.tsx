@@ -32,6 +32,7 @@ const items: Item[] = [
   { label: "Leads & Commerce", href: "/dashboard/commerce", icon: "spark" },
   { label: "Channels", href: "/dashboard/channels", icon: "whatsapp" },
   { label: "Settings", href: "/dashboard/settings", icon: "key" },
+  { label: "Support Tickets", href: "/dashboard/support", icon: "report" },
   { label: "Subscription & Plans", href: "/dashboard/subscription", icon: "shield" },
   { label: "Media Library", href: "/dashboard/media", icon: "report" },
   { label: "CTWA Ads", href: "/dashboard/ctwa-ads", icon: "facebook" },
