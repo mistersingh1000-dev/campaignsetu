@@ -43,5 +43,8 @@ jobs:
       - name: Test encrypted backup
         run: node --test tests/disaster-backup.test.cjs
 
+      - name: Test Facebook customer onboarding
+        run: node --test tests/facebook-onboarding.test.cjs
+
       - name: Build
         run: npm run build

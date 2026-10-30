@@ -1,51 +1,29 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { COOKIE_NAME, verifySession } from "@/lib/auth";
-import { getDb, findUser } from "@/lib/db";
-import { accessState } from "@/lib/entitlements";
-import { encryptCredential } from "@/lib/credential-crypto";
-export const runtime = "nodejs";
-async function context() {
- const session=await verifySession((await cookies()).get(COOKIE_NAME)?.value);
- if(!session) return {error:NextResponse.json({error:"Sign in required."},{status:401})};
- const db=getDb(); if(!db) return {error:NextResponse.json({error:"Database unavailable."},{status:503})};
- const user=await findUser(db,session.sub);
- if(!user||!accessState(user).active) return {error:NextResponse.json({error:"Active account required."},{status:403})};
- return {db,user};
-}
+import { crmRequestContext } from "@/lib/crm-request-context";
+import { oauthConfigured, pendingFacebookPages, selectedFacebookPage, connectFacebookPage } from "@/lib/facebook-lead-onboarding";
+export const runtime="nodejs";
 export async function GET() {
- const c=await context();if(c.error)return c.error;
- const snap=await c.db!.collection("crm_facebook_pages").where("userId","==",c.user!.email).get();
- return NextResponse.json({pages:snap.docs.map(d=>({id:d.id,name:d.data().name,status:d.data().status}))});
+ const c=await crmRequestContext();if(c.error)return c.error;
+ try {
+  const [connected,pending]=await Promise.all([c.db!.collection("crm_facebook_pages").where("userId","==",c.user!.email).get(),pendingFacebookPages(c.db!,c.user!.email)]);
+  const candidates=await Promise.all(pending.map(async p=>{const existing=await c.db!.collection("crm_facebook_pages").doc(p.id).get();return {id:p.id,name:p.name,available:!existing.exists||existing.data()?.userId===c.user!.email};}));
+  return NextResponse.json({loginConfigured:oauthConfigured(),pages:connected.docs.map(d=>({id:d.id,name:d.data().name,status:d.data().status,lastLeadReceivedAt:d.data().lastLeadReceivedAt||null})),selectablePages:candidates},{headers:{"Cache-Control":"no-store"}});
+ }catch{return NextResponse.json({error:"Unable to load Facebook Page connections."},{status:503});}
 }
 export async function POST(req:Request) {
- const c=await context();if(c.error)return c.error;
+ const c=await crmRequestContext();if(c.error)return c.error;
+ const origin=process.env.NEXT_PUBLIC_SITE_URL;
+ if(!origin||req.headers.get("origin")!==new URL(origin).origin)return NextResponse.json({error:"Invalid request origin."},{status:403});
  const input=await req.json().catch(()=>({}));
- const token=typeof input.pageToken==="string"?input.pageToken.trim():"";
- if(!token||token.length>4096)return NextResponse.json({error:"Valid Page access token required."},{status:400});
- const appId=process.env.NEXT_PUBLIC_META_APP_ID,secret=process.env.META_APP_SECRET;
- if(!appId||!secret)return NextResponse.json({error:"Meta app is not configured."},{status:503});
- const version=process.env.WHATSAPP_API_VERSION||"v26.0";
- const base="https://graph.facebook.com/"+version;
+ const pageId=typeof input.pageId==="string"?input.pageId:"";
+ if(!/^\d{1,40}$/.test(pageId))return NextResponse.json({error:"Choose a Facebook Page from your authorized list."},{status:400});
  try {
-  const checked=await fetch(base+"/debug_token?input_token="+encodeURIComponent(token),{headers:{Authorization:"Bearer "+appId+"|"+secret},cache:"no-store"});
-  const debug=(await checked.json()).data;
-  if(!checked.ok||!debug?.is_valid||debug.app_id!==appId||!debug.scopes?.includes("leads_retrieval")||!debug.scopes?.includes("pages_manage_metadata"))return NextResponse.json({error:"Token must belong to this Meta app and include leads_retrieval and pages_manage_metadata."},{status:400});
-  const me=await fetch(base+"/me?fields=id,name,category",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
-  const page=await me.json();
-  if(!me.ok||!/^\d+$/.test(page.id)||!page.category)return NextResponse.json({error:"A Page access token is required, not a personal user token."},{status:400});
-  const ref=c.db!.collection("crm_facebook_pages").doc(page.id);
-  const allowed=await c.db!.runTransaction(async tx=>{
-   const previous=await tx.get(ref);
-   if(previous.exists&&previous.data()?.userId!==c.user!.email)return false;
-   tx.set(ref,{userId:c.user!.email,name:String(page.name||"Facebook Page"),token:encryptCredential(token),status:"pending",updatedAt:new Date().toISOString()},{merge:true});
-   return true;
-  });
-  if(!allowed)return NextResponse.json({error:"This Page is already assigned to another workspace."},{status:409});
-  const sub=await fetch(base+"/"+page.id+"/subscribed_apps",{method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({subscribed_fields:["leadgen"]}),cache:"no-store"});
-  const result=await sub.json();
-  if(!sub.ok||result.success!==true){await ref.update({status:"subscription_failed"});return NextResponse.json({error:"Meta did not enable leadgen. Check app review, Page access and webhook setup."},{status:502});}
-  await ref.update({status:"subscribed"});
-  return NextResponse.json({page:{id:page.id,name:page.name,status:"subscribed"}});
- }catch{return NextResponse.json({error:"Facebook connection failed. No token details are exposed."},{status:502});}
+  const page=await selectedFacebookPage(c.db!,c.user!.email,pageId);
+  if(!page)return NextResponse.json({error:"Page authorization expired. Connect Facebook again."},{status:400});
+  const connected=await connectFacebookPage(c.db!,c.user!.email,page);
+  return NextResponse.json({page:connected});
+ }catch(e:any){
+  const conflict=e?.message==="page_workspace_conflict";
+  return NextResponse.json({error:conflict?"This Page is assigned to another workspace. Contact support before transferring it.":"Meta could not enable lead capture. Your Page authorization is retained for retry. Check Page permissions and app review."},{status:conflict?409:502});
+ }
 }
