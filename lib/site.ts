@@ -12,10 +12,10 @@ export const site = {
   whatsapp: "917009732517",
   whatsappMessage: "Hi, I am interested in the CampaignSetu platform.",
 
-  // Manual UPI fallback. Automatic Razorpay checkout is used when configured.
+  // Owner-selected manual UPI payments, activated only after administrator verification.
   upiId: "9501216365@mbk",
-  upiName: "Codecraft Marketing · MobiKwik",
-  upiQrImage: "/upi-qr.jpeg",
+  upiName: "Ludhiana ad Service",
+  upiQrImage: "/upi-payment-ludhiana.jpeg",
 };
 
 export const nav = [
@@ -158,7 +158,7 @@ export const faqs = [
   },
   {
     q: "How are subscriptions activated?",
-    a: "When Razorpay is configured, secure online payments can be verified server-side and activate the plan automatically. Manual UPI with admin verification remains available as a fallback.",
+    a: "Pay using the displayed UPI QR and submit your transaction reference. Your request remains pending until an administrator verifies receipt and approves it. Approval activates the selected plan; submitting a reference alone does not activate access.",
   },
 ];
 

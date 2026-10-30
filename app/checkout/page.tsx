@@ -227,7 +227,7 @@ function Checkout() {
               <div><p className="muted text-xs">You are buying</p><p className="font-display text-lg font-semibold">{plan.name}</p></div>
               <p className="font-display text-3xl font-bold">₹{plan.price.toLocaleString("en-IN")}</p>
             </div>
-            <div className="mt-6 rounded-2xl bg-white p-4"><img src={site.upiQrImage} alt={`UPI QR code to pay ${site.upiName}`} className="mx-auto h-56 w-56 object-contain" /></div>
+            <div className="mt-6 rounded-2xl bg-white p-4"><div className="mx-auto h-64 w-64 overflow-hidden"><img src={site.upiQrImage} alt={`UPI QR code to pay ${site.upiName}`} className="h-full w-full object-cover" style={{ objectPosition: "50% 47.5%", transform: "scale(2.2)" }} /></div></div>
             <div className="mt-4 text-center">
               <p className="muted text-xs">Or pay to this UPI ID</p>
               <button onClick={copyUpi} className="mt-1 font-mono text-sm font-semibold text-emerald hover:underline">{site.upiId} {copied ? "· copied" : "· tap to copy"}</button>
