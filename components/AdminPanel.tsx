@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { crmOffers } from "@/lib/crm-plans";
 
 type User = {
   id: string;
@@ -11,6 +12,9 @@ type User = {
   waba_id: string | null;
   wa_registered?: boolean;
   wa_registration_error?: string | null;
+  crm_tier?: string;
+  crm_status?: string;
+  crm_ends_at?: string;
   created_at: string;
 };
 
@@ -51,6 +55,7 @@ export default function AdminPanel() {
   const [editForm, setEditForm] = useState({ plan: "trial", trial_ends_at: "" });
   const [grantingUser, setGrantingUser] = useState<User | null>(null);
   const [grantDuration, setGrantDuration] = useState("1");
+  const [grantProduct, setGrantProduct] = useState("api");
   const [grantBusy, setGrantBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -87,6 +92,7 @@ export default function AdminPanel() {
     setEditingEmail(null);
     setGrantingUser(user);
     setGrantDuration("1");
+    setGrantProduct("api");
     setMsg("");
   };
 
@@ -123,14 +129,14 @@ export default function AdminPanel() {
       const res = await fetch(`/api/admin/users/${encodeURIComponent(grantingUser.email)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: "paid", trial_ends_at: accessEnd }),
+        body: JSON.stringify(grantProduct === "api" ? { plan: "paid", trial_ends_at: accessEnd } : { crm_plan_id: grantProduct }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setMsg(data.error || data.message || "Could not give plan");
         return;
       }
-      const label = PLAN_DURATIONS.find((d) => d.value === grantDuration)?.label || "Paid";
+      const label = grantProduct === "api" ? (PLAN_DURATIONS.find((d) => d.value === grantDuration)?.label || "API") : (crmOffers.find(p => p.id === grantProduct)?.name || "CRM");
       setMsg(`${label} paid plan activated for ${grantingUser.email} ✓`);
       setGrantingUser(null);
       await load();
@@ -191,6 +197,7 @@ export default function AdminPanel() {
                   <td className="px-4 py-3 text-sm font-mono">{user.email}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className="inline-flex rounded-full bg-emerald/20 px-2.5 py-1 text-xs font-medium text-emerald">{user.plan}</span>
+                    <p className="muted mt-1 text-xs">CRM: {user.crm_tier || "Legacy"} · {user.crm_status || "platform access"}{user.crm_ends_at ? ` · ${new Date(user.crm_ends_at).toLocaleDateString()}` : ""}</p>
                   </td>
                   <td className="px-4 py-3 text-sm">{new Date(user.trial_ends_at).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-sm">
@@ -228,12 +235,20 @@ export default function AdminPanel() {
           </div>
 
           <div className="mt-6 max-w-sm">
+            <label className="mb-1.5 block text-sm font-medium" htmlFor="grant-product">Package</label>
+            <select id="grant-product" className="field mb-4" value={grantProduct} onChange={e => setGrantProduct(e.target.value)}>
+              <option value="api">WhatsApp/API platform access</option>
+              {crmOffers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <p className="muted mb-3 text-xs">CRM grants start today and replace the current CRM tier/expiry. API access is separate. These grants do not record a payment.</p>
+            {grantProduct === "api" && <>
             <label className="mb-1.5 block text-sm font-medium">Plan duration</label>
             <select className="field" value={grantDuration} onChange={(e) => setGrantDuration(e.target.value)}>
               {PLAN_DURATIONS.map((duration) => (
                 <option key={duration.value} value={duration.value}>{duration.label}</option>
               ))}
             </select>
+            </>}
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">

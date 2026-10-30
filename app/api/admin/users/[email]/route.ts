@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb, updateUser } from "@/lib/db";
 import { getAdminSession } from "@/lib/admin-auth";
+import { crmOffer, addCalendarMonths } from "@/lib/crm-plans";
 
 export const runtime = "nodejs";
 
@@ -17,10 +18,22 @@ export async function PATCH(req: Request, { params }: any) {
     return NextResponse.json({ error: "database_not_configured" }, { status: 501 });
   }
 
-  const email = decodeURIComponent(params?.email || "").trim().toLowerCase();
+  const resolvedParams = await params;
+  const email = String(resolvedParams?.email || "").trim().toLowerCase();
   if (!email) return NextResponse.json({ error: "email_required" }, { status: 400 });
 
-  const { plan, trial_ends_at } = await req.json().catch(() => ({}));
+  if (req.headers.get("origin") && req.headers.get("origin") !== new URL(req.url).origin) return NextResponse.json({ error: "invalid_origin" }, { status: 403 });
+  const { plan, trial_ends_at, crm_plan_id } = await req.json().catch(() => ({}));
+  if (crm_plan_id !== undefined) {
+    const offer = crmOffer(String(crm_plan_id));
+    if (!offer || plan !== undefined || trial_ends_at !== undefined) return NextResponse.json({ error: "invalid_crm_grant" }, { status: 400 });
+    try {
+      const user = await updateUser(db, email, { crm_tier: offer.tier, crm_status: "active", crm_cycle: offer.cycle, crm_ends_at: addCalendarMonths(new Date(), offer.months).toISOString() });
+      if (!user) return NextResponse.json({ error: "user_not_found" }, { status: 404 });
+      const { password_hash, wa_token, wa_registration_pin, ...safe } = user;
+      return NextResponse.json({ ok: true, user: safe });
+    } catch { return NextResponse.json({ error: "crm_grant_failed" }, { status: 500 }); }
+  }
   const updates: Record<string, string> = {};
 
   if (plan !== undefined) {

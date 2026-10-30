@@ -24,6 +24,14 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
   const codeRef = useRef<string | null>(null);
   const signupRef = useRef<{ waba_id?: string; phone_number_id?: string; coexistence?: boolean }>({});
   const submittingRef = useRef(false);
+  const callbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [launching, setLaunching] = useState(false);
+  const finishWaiting = useCallback(() => {
+    if (callbackTimer.current) clearTimeout(callbackTimer.current);
+    callbackTimer.current = null;
+    setLaunching(false);
+  }, []);
+  useEffect(() => () => { if (callbackTimer.current) clearTimeout(callbackTimer.current); }, []);
 
   const ready =
     APP_ID !== "YOUR_META_APP_ID" &&
@@ -82,6 +90,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
     const { waba_id, phone_number_id, coexistence } = signupRef.current;
     if (!code || !waba_id || (!coexistence && !phone_number_id) || submittingRef.current) return;
 
+    finishWaiting();
     submittingRef.current = true;
     setStatus("Finishing your WhatsApp API connection…");
 
@@ -120,7 +129,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
     } finally {
       submittingRef.current = false;
     }
-  }, [onConnected, checkPending]);
+  }, [onConnected, checkPending, finishWaiting]);
 
   useEffect(() => {
     if (!ready) return;
@@ -146,7 +155,7 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
     }
 
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== "https://www.facebook.com") return;
+      if (!["https://www.facebook.com", "https://web.facebook.com", "https://facebook.com"].includes(event.origin)) return;
 
       try {
         const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
@@ -161,14 +170,17 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
             void saveIfReady();
           }
         } else if (data?.event === "FINISH") {
+          finishWaiting();
           // This button is exclusively for the existing Business App flow.
           // Do not send a standard FINISH result to the registration endpoint.
           codeRef.current = null;
           signupRef.current = {};
           setStatus("Meta did not confirm an existing Business App connection. No phone registration was started. Contact support before retrying.");
         } else if (data?.event === "CANCEL") {
+          finishWaiting();
           setStatus("Signup was cancelled before completion.");
         } else if (data?.event === "ERROR") {
+          finishWaiting();
           setStatus(data?.data?.error_message || "Meta reported an Embedded Signup error.");
         }
       } catch {
@@ -178,9 +190,10 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
 
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [ready, saveIfReady]);
+  }, [ready, saveIfReady, finishWaiting]);
 
   const launch = (existingBusinessApp = false) => {
+    if (launching || submittingRef.current) return;
     if (access !== "allowed") {
       setStatus("Sign in with an active account before starting WhatsApp signup.");
       return;
@@ -197,14 +210,25 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
     codeRef.current = null;
     signupRef.current = {};
     submittingRef.current = false;
-    setStatus("Opening Meta's secure WhatsApp signup…");
+    setLaunching(true);
+    setStatus("Opening Meta's secure WhatsApp signup… If Meta shows a previous connection, choose Edit Settings to review WhatsApp onboarding.");
 
     window.FB.login(
       (response: any) => {
         if (response?.authResponse?.code) {
           codeRef.current = response.authResponse.code;
+          if (!signupRef.current.waba_id) {
+            setStatus("Facebook login returned, but WhatsApp onboarding has not completed. Waiting for the WhatsApp account confirmation…");
+            callbackTimer.current = setTimeout(() => {
+              if (!signupRef.current.waba_id && !submittingRef.current) {
+                setLaunching(false);
+                setStatus("Meta returned Facebook login only; no WhatsApp account was connected. Reopen Connect WhatsApp and choose Edit Settings on the previous-connection screen. Complete the existing Business App flow. If Meta still closes without WhatsApp setup, account eligibility or app access must be checked. Keep your mobile Business App installed.");
+              }
+            }, 15000);
+          }
           void saveIfReady();
         } else {
+          finishWaiting();
           setStatus("Signup was cancelled or Meta did not return an authorization code.");
         }
       },
@@ -233,12 +257,12 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         </div>
         <button
           onClick={() => launch(true)}
-          disabled={!ready || pending || connected || recovering || access !== "allowed"}
+          disabled={!ready || pending || connected || recovering || launching || access !== "allowed"}
           title={ready ? "Open Meta Embedded Signup" : "Meta Embedded Signup is being configured"}
           className="btn-primary shrink-0 bg-[#1877F2] bg-none text-white disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Icon.link className="h-5 w-5" />
-          {connected ? "WhatsApp connected" : "Connect WhatsApp"}
+          {connected ? "WhatsApp connected" : launching ? "Connecting…" : "Connect WhatsApp"}
         </button>
       </div>
 
