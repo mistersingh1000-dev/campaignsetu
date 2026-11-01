@@ -14,12 +14,12 @@ Prepared 2026-11-01. This is a preparation record, not a completed screencast or
 - Facebook Page Ludhiana ad service is subscribed in the owner workspace; the UI explicitly reports test lead not yet verified. The existing CRM sample is Manual and must never be described as a Facebook-imported lead.
 - App remains unpublished and final review submission has not occurred.
 
-## Processor inventory and unresolved locations
+## Processor inventory and declared locations
 
 | Provider | Observed use | Platform Data exposure | Location evidence / remaining check |
 | --- | --- | --- | --- |
-| Vercel | Hosts Next.js APIs and signed webhook processing | Account identifiers, lead/contact/message payloads and encrypted credentials pass through the runtime; logs may contain operational identifiers | Existing production deployment uses iad1 (United States). Provider DPA permits other international operations. Verify all applicable processing and remote-access countries before completing Meta's all-countries field. |
-| Google Cloud / Firebase Firestore | Persists workspaces, leads, contacts, messages, asset mappings and encrypted credentials | Stores Meta-derived data | Read-only Firestore database metadata verified on 2026-11-01: locationId asia-south1, FIRESTORE_NATIVE, STANDARD edition. Google maps asia-south1 to Mumbai, India. Applicable provider processing/remote-access locations still need verification; the at-rest location does not establish an India-only processing guarantee. |
+| Vercel | Hosts Next.js APIs and signed webhook processing | Account identifiers, lead/contact/message payloads and encrypted credentials pass through the runtime; logs may contain operational identifiers | Existing production deployment uses iad1 (United States). Provider DPA permits other international operations. The Vercel Trust Center subprocessor list (last updated 2026-08-21) publishes United States, United Kingdom and Spain. Those three countries were declared in Meta on 2026-11-01, conservatively including support/analytics locations; this is not a US-only guarantee. |
+| Google Cloud / Firebase Firestore | Persists workspaces, leads, contacts, messages, asset mappings and encrypted credentials | Stores Meta-derived data | Read-only Firestore database metadata verified on 2026-11-01: locationId asia-south1, FIRESTORE_NATIVE, STANDARD edition. Google maps asia-south1 to Mumbai, India. Google's published all-services/all-regions service-maintenance and technical-support entries, including relevant third-party support entries, were used for the country declaration. Region-only data-center entries for unused regions and unrelated product-specific processors were excluded. The at-rest location does not establish an India-only processing guarantee. |
 | Resend | Transactional account, password recovery, order and activation emails | Code paths inspected do not send lead/message records to Resend; user-entered contact enquiries may contain personal information | Inventory as an application provider. Determine whether any deployed email path actually receives Meta-derived data before including/excluding it in the Meta Platform Data declaration. Environment key presence does not prove sender delivery is verified. |
 | GitHub | Source repository and CI | Source is not intended to include customer Platform Data, live tokens or credentials | Not a customer-data store in the inspected architecture. Reassess if logs or fixtures change. |
 
@@ -32,7 +32,9 @@ Official references checked during preparation:
 - https://firebase.google.com/terms/subprocessors
 - https://cloud.google.com/terms/subprocessors (service-specific and support-access distinctions)
 
-Meta asks for every processing country, including remote access. Provider headquarters and a single deployment region are insufficient evidence. Do not mark this form complete while the location inventory is unresolved.
+Meta asks for every processing country, including remote access. Provider headquarters and a single deployment region are insufficient evidence. On 2026-11-01 the Google/Firebase record was saved with: Argentina, Australia, Austria, Belgium, Brazil, Bulgaria, Canada, Chile, Colombia, Czech Republic, Denmark, El Salvador, Finland, France, Germany, India, Indonesia, Ireland, Israel, Italy, Japan, Luxembourg, Malaysia, Mexico, Netherlands, New Zealand, Philippines, Poland, Portugal, Romania, Singapore, Slovakia, South Korea, Spain, Sri Lanka, Sweden, Switzerland, Taiwan, United Kingdom, United States of America. This reflects published possible service/support processing, not a claim that the database is replicated to those countries. Re-check the lists on supplier changes.
+
+The Meta Data handling and Reviewer instructions sections both passed validation and showed 100% with green completion markers. Submit for review remains disabled because Verification and Allowed usage remain incomplete. Reviewer instructions were updated to distinguish synthetic webhook tests, the Manual CRM sample, and the blocked real WhatsApp connection from genuine end-to-end delivery. No final submission occurred.
 
 ## Genuine Facebook review recording shot list
 
@@ -66,4 +68,4 @@ Meta asks for every processing country, including remote access. Provider headqu
 
 ## Remaining release gates
 
-Processor-country verification; genuine Facebook and WhatsApp recordings; real Instant Form import; real mobile-panel delivery; reviewer-login validation; final review submission/publication; and a genuine UPI receipt followed by administrator approval. Automated payment tests and QR decoding do not prove real bank receipt. Never create a fictitious paid production order to complete this gate.
+Genuine Facebook and WhatsApp recordings; real Instant Form import; real mobile-panel delivery; reviewer-login validation; final review submission/publication; and a genuine UPI receipt followed by administrator approval. Automated payment tests and QR decoding do not prove real bank receipt. Never create a fictitious paid production order to complete this gate.
