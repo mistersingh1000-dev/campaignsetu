@@ -19,7 +19,7 @@ Prepared 2026-11-01. This is a preparation record, not a completed screencast or
 | Provider | Observed use | Platform Data exposure | Location evidence / remaining check |
 | --- | --- | --- | --- |
 | Vercel | Hosts Next.js APIs and signed webhook processing | Account identifiers, lead/contact/message payloads and encrypted credentials pass through the runtime; logs may contain operational identifiers | Existing production deployment uses iad1 (United States). Provider DPA permits other international operations. Verify all applicable processing and remote-access countries before completing Meta's all-countries field. |
-| Google Cloud / Firebase Firestore | Persists workspaces, leads, contacts, messages, asset mappings and encrypted credentials | Stores Meta-derived data | Verify the actual database location and applicable Google processing/remote-access locations; do not infer these from the Vercel region or project environment variable names. |
+| Google Cloud / Firebase Firestore | Persists workspaces, leads, contacts, messages, asset mappings and encrypted credentials | Stores Meta-derived data | Read-only Firestore database metadata verified on 2026-11-01: locationId asia-south1, FIRESTORE_NATIVE, STANDARD edition. Google maps asia-south1 to Mumbai, India. Applicable provider processing/remote-access locations still need verification; the at-rest location does not establish an India-only processing guarantee. |
 | Resend | Transactional account, password recovery, order and activation emails | Code paths inspected do not send lead/message records to Resend; user-entered contact enquiries may contain personal information | Inventory as an application provider. Determine whether any deployed email path actually receives Meta-derived data before including/excluding it in the Meta Platform Data declaration. Environment key presence does not prove sender delivery is verified. |
 | GitHub | Source repository and CI | Source is not intended to include customer Platform Data, live tokens or credentials | Not a customer-data store in the inspected architecture. Reassess if logs or fixtures change. |
 
@@ -28,6 +28,7 @@ Official references checked during preparation:
 - https://vercel.com/legal/dpa (international processing provisions)
 - https://vercel.com/legal/sub-processors (redirects to Vercel Trust Center)
 - https://firebase.google.com/support/privacy (location selection and processing)
+- https://firebase.google.com/docs/firestore/locations (asia-south1 is Mumbai)
 - https://firebase.google.com/terms/subprocessors
 - https://cloud.google.com/terms/subprocessors (service-specific and support-access distinctions)
 
