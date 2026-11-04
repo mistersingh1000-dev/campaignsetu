@@ -42,7 +42,7 @@ export async function saveLead(db: Firestore, userId: string, input: any, facebo
     const count=counter.exists?Number(counter.data()?.leads)||0:initialCount;
     assertCrmCount(account.data() || {}, "leads", count);
     const now = new Date().toISOString();
-    const lead: Lead = { ...fields, id: ref.id, userId, source: facebookLeadId ? "Facebook Lead Ads" : whatsAppPhone ? "WhatsApp" : fields.source, createdAt: now, updatedAt: now, activity:[{at:now,text:"Lead created"}], ...(facebookLeadId ? {facebookLeadId, ...(intelligence ? {intelligence} : {})} : {}) };
+    const lead: Lead = { ...fields, id: ref.id, userId, source: facebookLeadId ? "Facebook Lead Ads" : whatsAppPhone ? "WhatsApp" : fields.source, createdAt: now, updatedAt: now, activity:[{at:now,text:"Lead created"}], ...(facebookLeadId ? {facebookLeadId} : {}), ...(intelligence ? {intelligence} : {}) };
     tx.create(ref, lead);
     tx.set(usageRef,{leads:count+1,updatedAt:now},{merge:true});
     return lead;
