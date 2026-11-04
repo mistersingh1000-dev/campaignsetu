@@ -40,6 +40,9 @@ jobs:
       - name: Test CRM
         run: node --test tests/crm.test.cjs
 
+      - name: Test CRM API workflow, isolation and write safety
+        run: node --test tests/crm-workflow.test.cjs
+
       - name: Test encrypted backup
         run: node --test tests/disaster-backup.test.cjs
 

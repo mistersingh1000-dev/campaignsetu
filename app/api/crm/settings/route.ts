@@ -15,6 +15,8 @@ async function context(write=false){
 }
 export async function GET(){const c=await context();if(c.error)return c.error;const snap=await c.ref!.get();return NextResponse.json({settings:snap.exists?snap.data():defaultSettings});}
 export async function PUT(req:Request){
+ const origin=req.headers?.get?.("origin");
+ if(origin && origin!==new URL(req.url).origin)return NextResponse.json({error:"Invalid request origin."},{status:403});
  const c=await context(true);if(c.error)return c.error;
  try {
   const settings=cleanSettings(await req.json());
