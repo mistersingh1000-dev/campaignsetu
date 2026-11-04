@@ -5,7 +5,9 @@ const ts = require("typescript");
 const compiled=ts.transpileModule(fs.readFileSync("lib/crm-db.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 const settingsCode=ts.transpileModule(fs.readFileSync("lib/crm-settings.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 const settingsModule={exports:{}};new Function("exports","require","module",settingsCode)(settingsModule.exports,require,settingsModule);
-const m={exports:{}};new Function("exports","require","module",compiled)(m.exports,n=>n==="./crm-settings"?settingsModule.exports:n==="./crm-plans"?require("./test-helpers.cjs").load("lib/crm-plans.ts"):require(n),m);
+const intelligenceCode=ts.transpileModule(fs.readFileSync("lib/lead-qualification.ts","utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+const intelligenceModule={exports:{}};new Function("exports","require","module",intelligenceCode)(intelligenceModule.exports,require,intelligenceModule);
+const m={exports:{}};new Function("exports","require","module",compiled)(m.exports,n=>n==="./crm-settings"?settingsModule.exports:n==="./lead-qualification"?intelligenceModule.exports:n==="./crm-plans"?require("./test-helpers.cjs").load("lib/crm-plans.ts"):require(n),m);
 const {cleanLead,saveLead}=m.exports;
 test("lead validation rejects invalid contact, stage, dates and values",()=>{
  for(const input of [
@@ -78,4 +80,20 @@ test("email templates personalize plain text and reject header injection",()=>{
  assert.equal(config.emailTemplates.length,1);
  assert.deepEqual(renderEmailTemplate(template,{name:"Manpreet",phone:"123",email:"a@example.com"}),{subject:"Hello Manpreet",body:"Phone 123 / a@example.com"});
  assert.throws(()=>cleanSettings({emailTemplates:[{...template,subject:"Hello\r\nBcc: someone@example.com"}]}));
+});
+
+test("Facebook form answers are scored without auto-sending or marking sale won",async()=>{
+ const score=intelligenceModule.exports.assessLeadForm;
+ const q=score({full_name:"Rahul",phone_number:"919000000000",service:"ready to pay for Pro plan",budget:"₹5000",when:"Urgent today",contact_preference:"Please call me"},"Rahul Sharma");
+ assert.equal(q.intent,"purchase");assert.equal(q.priority,"Hot");assert.ok(q.score<=100);
+ assert.equal(q.answers.full_name,undefined);assert.ok(q.nextAction.includes("confirm"));
+ assert.ok(q.replyDraft.includes("Rahul"));
+ const decline=score({reason:"Not interested"},"Aman");
+ assert.equal(decline.score,0);assert.equal(decline.replyDraft,"");
+ const db=new (require("./test-helpers.cjs").DB)();
+ db.map.set("users/example@example.com",{plan:"free",email:"example@example.com"});
+ const a=await saveLead(db,"example@example.com",{name:"Rahul",email:"rahul@example.com",formAnswers:{service:"ready to pay",budget:"₹5000"}},"lead123");
+ assert.equal(a.intelligence.intent,"purchase");assert.notEqual(a.stage,"Won");
+ const b=await saveLead(db,"example@example.com",{name:"Rahul",email:"rahul@example.com",formAnswers:{service:"different"}},"lead123");
+ assert.deepEqual(b.intelligence,a.intelligence);
 });

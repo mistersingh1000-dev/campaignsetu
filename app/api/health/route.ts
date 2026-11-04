@@ -6,7 +6,8 @@ export async function GET() {
   return NextResponse.json(
     {
       ok: true,
-      service: "WhatsApp Connect Pro",
+      service: "CampaignSetu",
+      check: "liveness_only",
       environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown",
       commit: process.env.VERCEL_GIT_COMMIT_SHA || null,
       checkedAt: new Date().toISOString(),

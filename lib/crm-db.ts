@@ -1,10 +1,11 @@
 import type { Firestore } from "firebase-admin/firestore";
+import { assessLeadForm, type FormAssessment } from "./lead-qualification";
 import { cleanCustomValues, defaultSettings, getPipeline, type CrmSettings } from "./crm-settings";
 import { assertCrmCount } from "./crm-plans";
 import { createHash } from "node:crypto";
 export const stages = ["New", "Contacted", "Qualified", "Proposal", "Won", "Lost"] as const;
 export type Stage = string;
-export type Lead = { id: string; userId: string; name: string; phone: string; email: string; source: string; stage: Stage; notes: string; followUpAt: string | null; value: number; createdAt: string; updatedAt: string; facebookLeadId?: string; tags?: string[]; customValues?: Record<string,string|number|boolean>; rowColor?: string; followUpDone?: boolean; activity?: {at:string;text:string}[]; };
+export type Lead = { id: string; userId: string; name: string; phone: string; email: string; source: string; stage: Stage; notes: string; followUpAt: string | null; value: number; createdAt: string; updatedAt: string; facebookLeadId?: string; tags?: string[]; customValues?: Record<string,string|number|boolean>; rowColor?: string; followUpDone?: boolean; activity?: {at:string;text:string}[]; intelligence?: FormAssessment; };
 export function cleanLead(input: any, requireContact = true, settings: CrmSettings = defaultSettings) {
   const name = String(input.name || "").trim().slice(0,120);
   const phone = String(input.phone || "").replace(/[^+0-9]/g,"").slice(0,20);
@@ -28,6 +29,7 @@ export function cleanLead(input: any, requireContact = true, settings: CrmSettin
 export async function saveLead(db: Firestore, userId: string, input: any, facebookLeadId?: string) {
   const config = await db.collection("crm_settings").doc(userId).get();
   const fields = cleanLead(input, !facebookLeadId, (config.data() as CrmSettings) || defaultSettings);
+  const intelligence = facebookLeadId ? assessLeadForm(input.formAnswers || {}, fields.name) : null;
   const ref = facebookLeadId ? db.collection("crm_leads").doc(createHash("sha256").update(userId + ":" + facebookLeadId).digest("hex")) : db.collection("crm_leads").doc();
   const usageRef=db.collection("crm_usage").doc(userId);
   const usage=await usageRef.get();
@@ -38,7 +40,7 @@ export async function saveLead(db: Firestore, userId: string, input: any, facebo
     const count=counter.exists?Number(counter.data()?.leads)||0:initialCount;
     assertCrmCount(account.data() || {}, "leads", count);
     const now = new Date().toISOString();
-    const lead: Lead = { ...fields, id: ref.id, userId, source: facebookLeadId ? "Facebook Lead Ads" : fields.source, createdAt: now, updatedAt: now, activity:[{at:now,text:"Lead created"}], ...(facebookLeadId ? {facebookLeadId} : {}) };
+    const lead: Lead = { ...fields, id: ref.id, userId, source: facebookLeadId ? "Facebook Lead Ads" : fields.source, createdAt: now, updatedAt: now, activity:[{at:now,text:"Lead created"}], ...(facebookLeadId ? {facebookLeadId, ...(intelligence ? {intelligence} : {})} : {}) };
     tx.create(ref, lead);
     tx.set(usageRef,{leads:count+1,updatedAt:now},{merge:true});
     return lead;
