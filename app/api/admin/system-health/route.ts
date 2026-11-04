@@ -98,6 +98,20 @@ export async function GET() {
       help: "Used server-side for authorization and webhook signature verification.",
     },
     {
+      id: "facebook-lead-login",
+      label: "Facebook Lead Ads login configuration",
+      configured: configured("FACEBOOK_LEAD_LOGIN_CONFIG_ID"),
+      required: true,
+      help: "Customer Page login configuration. A configured ID does not prove permission approval or a successful test lead.",
+    },
+    {
+      id: "facebook-lead-webhook",
+      label: "Facebook Lead Ads verify token",
+      configured: configured("FACEBOOK_LEAD_WEBHOOK_TOKEN"),
+      required: true,
+      help: "Meta must verify the leadgen callback and a genuine lead event must be processed.",
+    },
+    {
       id: "webhook-token",
       label: "WhatsApp webhook verify token",
       configured: configured("WHATSAPP_WEBHOOK_TOKEN"),

@@ -27,3 +27,13 @@ Do not claim Meta approval or live customer delivery without evidence.
 
 See docs/META_APPROVAL_READINESS.md, docs/coexistence-reviewer-validation.md, docs/facebook-customer-onboarding.md and docs/meta-review-evidence-pack.md.
 Never commit credentials or customer records. Preserve the current Firebase database and encryption key.
+
+## WhatsApp enquiries in CRM
+On a genuine signed inbound message, CampaignSetu creates one CRM lead per
+workspace + WhatsApp sender. The lead has a Hot/Warm/Cold score, next action,
+source WhatsApp and first follow-up deadline. Replays and later messages cannot
+overwrite human-edited stages/notes. This does not grant marketing opt-in or
+automatically initiate a WhatsApp conversation. An opted-out or blocked contact
+cannot trigger the lead capture or bot reply. If CRM entitlement/lead quota
+fails, Inbox/Contacts still function; the owner must review the quota.
+This remains subject to real Meta webhook delivery and end-to-end testing.

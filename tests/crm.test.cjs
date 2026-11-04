@@ -97,3 +97,21 @@ test("Facebook form answers are scored without auto-sending or marking sale won"
  const b=await saveLead(db,"example@example.com",{name:"Rahul",email:"rahul@example.com",formAnswers:{service:"different"}},"lead123");
  assert.deepEqual(b.intelligence,a.intelligence);
 });
+
+test("WhatsApp inbound message creates one CRM lead per sender and workspace",async()=>{
+ const db=new (require("./test-helpers.cjs").DB)();
+ for(const user of ["one@example.com","two@example.com"])db.map.set("users/"+user,{plan:"free",email:user});
+ const first=await m.exports.saveWhatsAppLead(db,"one@example.com",{phone:"+91 90000 00001",name:"Kiran",firstMessage:"Please call me today"});
+ assert.equal(first.source,"WhatsApp");assert.equal(first.stage,"New");
+ assert.equal(first.intelligence.intent,"callback");assert.equal(first.intelligence.priority,"Warm");
+ assert.ok(first.followUpAt);assert.equal(first.marketingOptIn,undefined);
+ const replay=await m.exports.saveWhatsAppLead(db,"one@example.com",{phone:"919000000001",name:"Kiran",firstMessage:"Different question"});
+ assert.equal(replay.id,first.id);assert.equal(replay.notes,first.notes);
+ db.map.set("crm_leads/"+first.id,{...first,stage:"Won",notes:"Payment verified by human"});
+ const updated=await m.exports.saveWhatsAppLead(db,"one@example.com",{phone:"919000000001",firstMessage:"Something else"});
+ assert.equal(updated.stage,"Won");assert.equal(updated.notes,"Payment verified by human");
+ const second=await m.exports.saveWhatsAppLead(db,"two@example.com",{phone:"919000000001",firstMessage:"Price?"});
+ assert.notEqual(second.id,first.id);
+ assert.equal([...db.map.keys()].filter(x=>x.startsWith("crm_leads/")).length,2);
+ await assert.rejects(()=>m.exports.saveWhatsAppLead(db,"one@example.com",{phone:"abc",firstMessage:"Hello"}),/Invalid WhatsApp/);
+});

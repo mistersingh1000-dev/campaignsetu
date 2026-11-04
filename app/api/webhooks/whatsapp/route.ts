@@ -15,6 +15,7 @@ import {
 } from "@/lib/marketing-db";
 import { runInboundAutomations } from "@/lib/automation-engine";
 import { whatsappMessageAlreadyProcessed } from "@/lib/webhook-idempotency";
+import { saveWhatsAppLead } from "@/lib/crm-db";
 
 import { digestCoexistenceChange } from "@/lib/coexistence-sync";
 
@@ -159,7 +160,11 @@ export async function POST(req: Request) {
 
           const savedMessage = await addMessage(db, userId, id, "contact", text, msg?.id || null);
 
-          if (!optedOut && !savedMessage.duplicate) {
+          if (!optedOut && !savedMessage.duplicate && !contact.doNotMessage) {
+            // Save WhatsApp inquiries in CRM; opt-out is not marketing consent.
+            // A CRM quota/expiry error must not block the customer inbox.
+            await saveWhatsAppLead(db,userId,{name:profileName,phone:from,firstMessage:text})
+              .catch(e=>console.warn("WhatsApp CRM capture skipped:", e?.code||e?.message||"unavailable"));
             // Automation failures must not make Meta retry the whole webhook;
             // log them and keep the inbound message safely stored.
             await runInboundAutomations({

@@ -26,11 +26,13 @@ export function cleanLead(input: any, requireContact = true, settings: CrmSettin
   const customValues=cleanCustomValues(input.customValues,settings.fields);
   return { tags, rowColor, source, customValues, followUpDone: input.followUpDone===true, name, phone, email, stage, notes: String(input.notes || "").slice(0,10000), followUpAt: due?.toISOString() || null, value };
 }
-export async function saveLead(db: Firestore, userId: string, input: any, facebookLeadId?: string) {
+export async function saveLead(db: Firestore, userId: string, input: any, facebookLeadId?: string, whatsAppPhone?: string) {
   const config = await db.collection("crm_settings").doc(userId).get();
   const fields = cleanLead(input, !facebookLeadId, (config.data() as CrmSettings) || defaultSettings);
-  const intelligence = facebookLeadId ? assessLeadForm(input.formAnswers || {}, fields.name) : null;
-  const ref = facebookLeadId ? db.collection("crm_leads").doc(createHash("sha256").update(userId + ":" + facebookLeadId).digest("hex")) : db.collection("crm_leads").doc();
+  const intelligence = facebookLeadId || whatsAppPhone ? assessLeadForm(input.formAnswers || {}, fields.name) : null;
+  const ref = facebookLeadId ? db.collection("crm_leads").doc(createHash("sha256").update(userId + ":" + facebookLeadId).digest("hex"))
+    : whatsAppPhone ? db.collection("crm_leads").doc(createHash("sha256").update(userId + ":whatsapp:" + whatsAppPhone).digest("hex"))
+    : db.collection("crm_leads").doc();
   const usageRef=db.collection("crm_usage").doc(userId);
   const usage=await usageRef.get();
   const initialCount=usage.exists?Number(usage.data()?.leads)||0:(await db.collection("crm_leads").where("userId","==",userId).count().get()).data().count;
@@ -40,9 +42,27 @@ export async function saveLead(db: Firestore, userId: string, input: any, facebo
     const count=counter.exists?Number(counter.data()?.leads)||0:initialCount;
     assertCrmCount(account.data() || {}, "leads", count);
     const now = new Date().toISOString();
-    const lead: Lead = { ...fields, id: ref.id, userId, source: facebookLeadId ? "Facebook Lead Ads" : fields.source, createdAt: now, updatedAt: now, activity:[{at:now,text:"Lead created"}], ...(facebookLeadId ? {facebookLeadId, ...(intelligence ? {intelligence} : {})} : {}) };
+    const lead: Lead = { ...fields, id: ref.id, userId, source: facebookLeadId ? "Facebook Lead Ads" : whatsAppPhone ? "WhatsApp" : fields.source, createdAt: now, updatedAt: now, activity:[{at:now,text:"Lead created"}], ...(facebookLeadId ? {facebookLeadId, ...(intelligence ? {intelligence} : {})} : {}) };
     tx.create(ref, lead);
     tx.set(usageRef,{leads:count+1,updatedAt:now},{merge:true});
     return lead;
   });
+}
+
+
+/** One CRM lead per WhatsApp sender and workspace, without promotional consent. */
+export async function saveWhatsAppLead(db: Firestore, userId: string,
+  input: { name?: string | null; phone: string; firstMessage: string }): Promise<Lead> {
+  const phone=String(input.phone||"").replace(/\D/g,"");
+  if(!/^\d{7,15}$/.test(phone))throw Error("Invalid WhatsApp sender phone.");
+  const name=String(input.name||"").trim().slice(0,120)||"WhatsApp "+phone.slice(-4);
+  const firstMessage=String(input.firstMessage||"").slice(0,1000);
+  const q=assessLeadForm({customer_message:firstMessage},name);
+  const hours=q.priority==="Hot"?1:q.priority==="Warm"?6:24;
+  return saveLead(db,userId,{
+    name,phone:"+"+phone,source:"WhatsApp",
+    notes:"First WhatsApp enquiry: "+firstMessage,
+    followUpAt:new Date(Date.now()+hours*3600000).toISOString(),
+    formAnswers:{customer_message:firstMessage}
+  },undefined,phone);
 }
