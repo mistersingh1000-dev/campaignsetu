@@ -57,6 +57,7 @@ test('signed history webhook stores messages without inbound automation; unknown
  'next/server':{NextResponse:{json:(body,init)=>new Response(JSON.stringify(body),{status:init?.status||200})}},
  '@/lib/db':{getDb:()=>db},'@/lib/chat-db':{},'@/lib/marketing-db':{},
  '@/lib/automation-engine':{runInboundAutomations:async()=>{automationCalls++;}},
+ '@/lib/crm-db':{saveWhatsAppLead:async()=>{throw Error('Unexpected CRM capture during history import');}},
  '@/lib/webhook-idempotency':{},'@/lib/coexistence-sync':api});
  const payload={entry:[{id:'123',changes:[{field:'history',value:{metadata:{phone_number_id:'456',display_phone_number:msg.from},history:[{threads:[{id:msg.to,messages:[msg]}]}]}}]}]};
  const request=(body,valid=true)=>{const raw=JSON.stringify(body);return new Request('https://example.com/api/webhooks/whatsapp',{method:'POST',body:raw,headers:{'x-hub-signature-256':valid?'sha256='+crypto.createHmac('sha256',process.env.META_APP_SECRET).update(raw).digest('hex'):'sha256=bad'}});};
