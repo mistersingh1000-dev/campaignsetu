@@ -26,12 +26,18 @@ export async function GET(req: Request) {
   const leads = snap.docs.slice(0,limit).map(d=>d.data());
   return NextResponse.json({leads, next: snap.size > limit ? snap.docs[limit-1].id : null});
 }
+function invalidOrigin(req: Request): boolean {
+  const origin = req.headers.get("origin");
+  return Boolean(origin && origin !== new URL(req.url).origin);
+}
 export async function POST(req: Request) {
+  if (invalidOrigin(req)) return NextResponse.json({error:"Invalid request origin."},{status:403});
   const c = await context(true); if(c.error) return c.error;
   try { const lead = await saveLead(c.db!, c.userId!, await req.json()); return NextResponse.json({lead},{status:201}); }
   catch(e) { return e instanceof CrmPlanError ? NextResponse.json({error:e.message,code:e.code,upgrade:"/crm-pricing"},{status:402}) : NextResponse.json({error:"Enter a name, valid contact details, date and deal value."},{status:400}); }
 }
 export async function PATCH(req: Request) {
+  if (invalidOrigin(req)) return NextResponse.json({error:"Invalid request origin."},{status:403});
   const c = await context(true); if(c.error) return c.error;
   const input = await req.json().catch(()=>null);
   if (!input || typeof input.id !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(input.id)) return NextResponse.json({error:"Invalid lead."},{status:400});
@@ -44,6 +50,7 @@ export async function PATCH(req: Request) {
       const current=snap.data()!;
       const fields = cleanLead(input, !current.facebookLeadId, (config.data() as CrmSettings)||defaultSettings);
       if(current.facebookLeadId) fields.source="Facebook Lead Ads";
+      else if(current.source==="WhatsApp") fields.source="WhatsApp";
       const now=new Date().toISOString();
       const changed=["stage","notes","followUpAt","followUpDone","value","tags","customValues","source"].filter(k=>JSON.stringify(current[k])!==JSON.stringify((fields as any)[k]));
       const activity=[...(current.activity||[]),...(changed.length?[{at:now,text:"Updated: "+changed.join(", ")}]:[])].slice(-50);
