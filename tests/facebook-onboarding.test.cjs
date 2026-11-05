@@ -28,3 +28,14 @@ test('staged Pages expire, cannot be selected by another user, and foreign works
  const selected=await api.selectedFacebookPage(db,'owner@example.com','123');const result=await api.connectFacebookPage(db,'owner@example.com',selected,async()=>({ok:true,json:async()=>({success:true})}));assert.equal(result.status,'subscribed');assert.ok(!JSON.stringify(result).includes('token'));
  for(const [key,v] of db.map)if(key.startsWith('crm_facebook_onboarding/'))v.expiresAtMs=0;assert.equal((await api.pendingFacebookPages(db,'owner@example.com')).length,0);
 });
+
+test("new CampaignSetu domain determines Facebook OAuth callback",()=>{
+ const original=process.env.NEXT_PUBLIC_SITE_URL;
+ try{
+   process.env.NEXT_PUBLIC_SITE_URL="https://lasmediaagency.online";
+   assert.equal(api.callbackUrl(),"https://lasmediaagency.online/api/crm/facebook/callback");
+ } finally {
+   if(original===undefined)delete process.env.NEXT_PUBLIC_SITE_URL;
+   else process.env.NEXT_PUBLIC_SITE_URL=original;
+ }
+});

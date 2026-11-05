@@ -68,9 +68,9 @@ export async function POST(req: Request) {
     body: JSON.stringify({
       from,
       to: [cleanEmail],
-      subject: "Reset your WhatsApp Connect Pro password",
-      text: `A password reset was requested for your WhatsApp Connect Pro account.\n\nReset your password: ${resetUrl}\n\nThis link expires in 30 minutes and can be used only once. If you did not request this, you can ignore this email.`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#111827"><h2>Reset your password</h2><p>A password reset was requested for your WhatsApp Connect Pro account.</p><p><a href="${resetUrl}" style="display:inline-block;background:#16c55d;color:white;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700">Reset password</a></p><p style="font-size:13px;color:#6b7280">This link expires in 30 minutes and can be used only once. If you did not request this, you can ignore this email.</p></div>`,
+      subject: "Reset your CampaignSetu password",
+      text: `A password reset was requested for your CampaignSetu account.\n\nReset your password: ${resetUrl}\n\nThis link expires in 30 minutes and can be used only once. If you did not request this, you can ignore this email.`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#111827"><h2>Reset your password</h2><p>A password reset was requested for your CampaignSetu account.</p><p><a href="${resetUrl}" style="display:inline-block;background:#16c55d;color:white;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700">Reset password</a></p><p style="font-size:13px;color:#6b7280">This link expires in 30 minutes and can be used only once. If you did not request this, you can ignore this email.</p></div>`,
     }),
   });
 

@@ -69,3 +69,9 @@ The Meta Data handling and Reviewer instructions sections both passed validation
 ## Remaining release gates
 
 Genuine Facebook and WhatsApp recordings; real Instant Form import; real mobile-panel delivery; reviewer-login validation; final review submission/publication; and a genuine UPI receipt followed by administrator approval. Automated payment tests and QR decoding do not prove real bank receipt. Never create a fictitious paid production order to complete this gate.
+
+## Canonical domain update (2026-11-05)
+
+CampaignSetu is live at `https://lasmediaagency.online` on the existing Vercel project. The existing Business Portfolio and legal entity are unchanged by this domain migration. Meta developer account must confirm the saved site, privacy, OAuth callback `https://lasmediaagency.online/api/crm/facebook/callback`, WhatsApp callback `https://lasmediaagency.online/api/webhooks/whatsapp`, and Facebook lead callback `https://lasmediaagency.online/api/webhooks/facebook-leads`. Correct webhook GET security rejections and production HTTP 200 alone are not successful Meta verification.
+
+Actual signed events, mobile-to-CRM echoes/history, real Facebook test leads, payment authorization, App Review and publication still require independent evidence. Do not fabricate Meta approval, screencasts, live payment, or phone onboarding. Preserve old callbacks until successful new subscriptions.

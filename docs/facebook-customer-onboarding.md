@@ -7,8 +7,8 @@ Each active customer signs in with Facebook and selects a Page authorized by tha
 - NEXT_PUBLIC_META_APP_ID and META_APP_SECRET: the existing CampaignSetu Meta app.
 - NEXT_PUBLIC_SITE_URL: the canonical HTTPS deployment URL.
 - FACEBOOK_LEAD_LOGIN_CONFIG_ID: a dedicated Facebook Login for Business configuration that returns a user token, authorizes Pages, and requests pages_show_list, pages_read_engagement, pages_manage_metadata and leads_retrieval. Do not reuse the WhatsApp embedded-signup configuration.
-- Add the exact valid OAuth redirect URI: https://campaignsetu.vercel.app/api/crm/facebook/callback (replace canonical origin only if the deployment origin changes).
-- Configure and verify the Page leadgen callback: https://campaignsetu.vercel.app/api/webhooks/facebook-leads using FACEBOOK_LEAD_WEBHOOK_TOKEN.
+- Add the exact valid OAuth redirect URI: https://lasmediaagency.online/api/crm/facebook/callback (replace canonical origin only if the deployment origin changes).
+- Configure and verify the Page leadgen callback: https://lasmediaagency.online/api/webhooks/facebook-leads using FACEBOOK_LEAD_WEBHOOK_TOKEN.
 - Verify app publication/review and advanced permission access where required by Meta. Platform configuration alone is not proof that live customer authorization or lead delivery works.
 
 ## Data and recovery
