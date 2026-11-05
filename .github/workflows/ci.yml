@@ -51,6 +51,9 @@ jobs:
 
       - name: Verify canonical domain and CampaignSetu branding
         run: node --test tests/domain-migration.test.cjs
+      - name: Test WhatsApp connection diagnostics
+        run: node --test tests/whatsapp-connection-health.test.cjs
+
       - name: Test coexistence recovery
         run: node --test tests/coexistence-recovery.test.cjs
 

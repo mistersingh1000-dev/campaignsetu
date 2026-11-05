@@ -20,6 +20,21 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
   const [connected, setConnected] = useState(false);
   const [sync, setSync] = useState<{contacts:string;history:string;progress:number}|null>(null);
   const [recovering, setRecovering] = useState(false);
+  const [checkingHealth, setCheckingHealth] = useState(false);
+  const [connectionHealth, setConnectionHealth] = useState<null | {
+    phone:string;routing:string;webhookApp:string;coexistence:boolean;steps:string[];
+  }>(null);
+  const checkConnectionHealth = async () => {
+    setCheckingHealth(true);
+    try {
+      const response=await fetch("/api/whatsapp/connection-health",{cache:"no-store"});
+      const data=await response.json();
+      if(!response.ok)throw Error(data.error||"Connection check unavailable");
+      setConnectionHealth(data);
+    }catch{
+      setStatus("Could not verify WhatsApp connection. Sign in and retry, or contact support.");
+    }finally{setCheckingHealth(false);}
+  };
   const [access, setAccess] = useState<"checking" | "allowed" | "sign_in" | "inactive" | "unavailable">("checking");
   const codeRef = useRef<string | null>(null);
   const signupRef = useRef<{ waba_id?: string; phone_number_id?: string; coexistence?: boolean }>({});
@@ -284,6 +299,22 @@ export default function EmbeddedSignupButton({ onConnected }: { onConnected?: ()
         </div>
       )}
 
+      {connected && (
+        <section className="mt-4 rounded-2xl border p-4 text-sm" aria-live="polite">
+          <h4 className="font-semibold">WhatsApp connection diagnostics</h4>
+          <p className="muted mt-1">Database connection alone does not prove that incoming messages, app echoes, or chatbot delivery work.</p>
+          <button type="button" className="btn-ghost mt-3" disabled={checkingHealth} onClick={checkConnectionHealth}>
+            {checkingHealth?"Checking Meta…":"Check actual number and webhook routing"}
+          </button>
+          {connectionHealth&&<div className="mt-3 space-y-1">
+            <p>Meta phone verification: <strong>{connectionHealth.phone}</strong></p>
+            <p>Inbox owner routing: <strong>{connectionHealth.routing}</strong></p>
+            <p>WABA app subscription: <strong>{connectionHealth.webhookApp}</strong></p>
+            <p>Business App coexistence selected: <strong>{connectionHealth.coexistence?"Yes":"No"}</strong></p>
+            {connectionHealth.steps.map((step,i)=><p className="muted" key={i}>• {step}</p>)}
+          </div>}
+        </section>
+      )}
       {sync && (
         <div className="mt-4 text-sm" aria-live="polite">
           <p>Contacts import: {sync.contacts}. History import: {sync.history}{sync.progress > 0 ? ` (${sync.progress}%)` : ""}.</p>
