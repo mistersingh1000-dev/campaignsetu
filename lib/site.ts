@@ -52,6 +52,7 @@ export const footerLinks = {
   Legal: [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms & Conditions", href: "/terms" },
+    { label: "Data Deletion", href: "/data-deletion" },
   ],
 };
 
