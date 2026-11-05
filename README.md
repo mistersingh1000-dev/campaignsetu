@@ -54,3 +54,5 @@ For CampaignSetu Meta App 28981912631492578, confirm these exact URLs **have act
 - Facebook Page leadgen callback URL: `https://lasmediaagency.online/api/webhooks/facebook-leads` (use existing `FACEBOOK_LEAD_WEBHOOK_TOKEN` privately in Meta)
 
 Meta verification, business/app permissions, actual webhook subscriptions, real signed delivery, customer number coexistence, and actual payment remain **unverified** by DNS/code deployment. Verify true Meta callback subscriptions and signed events before disabling old URLs. Reviewer demo, support and data-handling instructions must use the new canonical origin.
+
+- Meta App Settings → Basic → User Data Deletion Instructions URL: `https://lasmediaagency.online/data-deletion` (public instructions; actual requests require support-side identity verification and manual processing). Do not claim that records are automatically removed when Meta access is revoked.
