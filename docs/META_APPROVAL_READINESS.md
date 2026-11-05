@@ -1,4 +1,4 @@
-# Codecraft Messaging Hub — Production & Meta App Review Readiness
+# CampaignSetu — Production & Meta App Review Readiness
 
 Status: **NOT YET APPROVED / NOT FULLY VERIFIED**. This is an engineering checklist, not a claim of production readiness.
 
@@ -34,3 +34,7 @@ Status: **NOT YET APPROVED / NOT FULLY VERIFIED**. This is an engineering checkl
 Do **not** advertise the platform as Meta-approved, officially affiliated, or fully operational until verification, App Review, and live integration tests pass.
 
 Official reference: https://www.postman.com/meta/whatsapp-business-platform/documentation/du6gzjv/embedded-signup
+
+## Domain migration — 2026-11-05
+
+The existing CampaignSetu Vercel project serves `https://lasmediaagency.online`; the canonical `NEXT_PUBLIC_SITE_URL` matches. The separate Ads site `ads.lasmediaagency.online` is not part of CampaignSetu. Meta developer app-side webhook/OAuth changes must be verified separately; domain verification does not prove Meta permission approval or incoming customer events. See README for exact URL checklist. Legacy `campaignsetu.vercel.app` should remain accessible until Meta callbacks are verified on the new origin.

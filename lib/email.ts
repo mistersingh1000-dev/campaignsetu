@@ -41,7 +41,7 @@ export async function sendEmail(opts: {
 const shell = (inner: string) => `
   <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0A0F0D">
     <div style="border-radius:14px;border:1px solid #e6e9e6;padding:24px">
-      <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#075E54">WhatsApp Connect Pro</p>
+      <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#075E54">CampaignSetu</p>
       ${inner}
     </div>
     <p style="margin:16px 0 0;font-size:12px;color:#6b7280;text-align:center">
