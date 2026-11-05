@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ChatDashboard from "@/components/ChatDashboard";
 
 export const metadata: Metadata = {
-  title: "Chat Inbox — Codecraft Messaging Hub",
+  title: "Chat Inbox — CampaignSetu",
   description: "Manage your WhatsApp conversations and send messages.",
 };
 

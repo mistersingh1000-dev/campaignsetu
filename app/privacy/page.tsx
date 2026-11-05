@@ -3,7 +3,7 @@ import Legal from "@/components/Legal";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How Codecraft Messaging Hub collects, uses, and protects your data.",
+  description: "How CampaignSetu collects, uses, and protects your data.",
 };
 
 const sections = [

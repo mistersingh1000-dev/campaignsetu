@@ -6,6 +6,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "",
     "/features",
     "/pricing",
+    "/crm-pricing",
     "/api-setup",
     "/embedded-signup",
     "/contact",

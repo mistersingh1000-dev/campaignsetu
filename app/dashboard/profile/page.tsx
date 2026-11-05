@@ -13,7 +13,7 @@ export default function ProfilePage() {
       <div className="mx-auto max-w-3xl rounded-[28px] border bg-white p-6 shadow-sm md:p-8 dark:border-white/10 dark:bg-white/[0.03]">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald">Profile</p>
         <h1 className="mt-2 text-3xl font-bold">My account</h1>
-        <p className="muted mt-2 text-sm">Your signed-in Codecraft Messaging Hub account details.</p>
+        <p className="muted mt-2 text-sm">Your signed-in CampaignSetu account details.</p>
 
         <div className="mt-7 grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border p-5 dark:border-white/10"><p className="muted text-xs">Name</p><p className="mt-1 font-semibold">{me?.name || "—"}</p></div>

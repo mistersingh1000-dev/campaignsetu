@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 
 export const metadata: Metadata = {
-  title: "Analytics — Codecraft Messaging Hub",
+  title: "Analytics — CampaignSetu",
   description: "Your chat analytics and metrics",
 };
 

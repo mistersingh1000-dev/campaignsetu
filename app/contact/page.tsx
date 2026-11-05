@@ -7,7 +7,7 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Contact — Request a Demo or Talk to Sales",
   description:
-    "Get in touch with Codecraft Messaging Hub. Request a demo, talk to sales, or chat with us on WhatsApp about official WhatsApp Business API access.",
+    "Get in touch with CampaignSetu. Request a demo, talk to sales, or chat with us on WhatsApp about official WhatsApp Business API access.",
 };
 
 const channels = [

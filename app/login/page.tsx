@@ -35,7 +35,7 @@ function LoginInner() {
           <Icon.whatsapp className="h-6 w-6 text-white" />
         </span>
         <h1 className="mt-4 font-display text-2xl font-bold">Welcome back</h1>
-        <p className="muted mt-2 text-sm">Sign in to your Codecraft Messaging Hub dashboard.</p>
+        <p className="muted mt-2 text-sm">Sign in to your CampaignSetu dashboard.</p>
       </div>
 
       {expired && (

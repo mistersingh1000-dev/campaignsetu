@@ -48,7 +48,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-6 text-sm muted sm:flex-row" style={{ borderColor: "var(--line)" }}>
-          <p>© 2026 CampaignSetu.</p>
+          <p>© {new Date().getFullYear()} {site.name} · {site.agencyName}</p>
           <p className="max-w-xl text-center text-xs sm:text-right">
             CampaignSetu is not Meta, WhatsApp, or an official Meta/WhatsApp product and is not endorsed by Meta Platforms, Inc. WhatsApp and Meta are trademarks of their respective owners.
           </p>

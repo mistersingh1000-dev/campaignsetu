@@ -1,9 +1,10 @@
 export const site = {
   name: "CampaignSetu",
   shortName: "CampaignSetu",
+  agencyName: "Las Media and Ads",
   domain:
     process.env.NEXT_PUBLIC_SITE_URL ||
-    "https://campaignsetu.vercel.app",
+    "https://lasmediaagency.online",
   tagline: "Independent business messaging, onboarding and automation",
   description:
     "Connect customer-owned WhatsApp Business Platform accounts through Meta Embedded Signup, manage conversations and contacts, run consented template campaigns, and automate inbound replies from one dashboard.",

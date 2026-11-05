@@ -8,7 +8,7 @@ import SectionHeading from "@/components/SectionHeading";
 export const metadata: Metadata = {
   title: "Meta Embedded Signup — Connect a Customer WhatsApp Account",
   description:
-    "Use Meta Embedded Signup to connect a customer's Business Portfolio, WhatsApp Business Account and phone number to Codecraft Messaging Hub.",
+    "Use Meta Embedded Signup to connect a customer's Business Portfolio, WhatsApp Business Account and phone number to CampaignSetu.",
 };
 
 const sdkCode = `// Important: Meta returns the authorization code and the

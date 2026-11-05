@@ -7,7 +7,7 @@ import SectionHeading from "@/components/SectionHeading";
 export const metadata: Metadata = {
   title: "Features — Messaging API Dashboard",
   description:
-    "Explore launch-ready Codecraft Messaging Hub capabilities: Meta Cloud API connection, Embedded Signup, conversation inbox, contacts, signed webhooks and account analytics.",
+    "Explore launch-ready CampaignSetu capabilities: Meta Cloud API connection, Embedded Signup, conversation inbox, contacts, signed webhooks and account analytics.",
 };
 
 export default function FeaturesPage() {

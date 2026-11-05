@@ -30,7 +30,7 @@ const customerReady = [
 ];
 
 const embeddedSteps = [
-  { n: 1, title: "Open your dashboard", body: "Sign in to Codecraft Messaging Hub and tap Connect WhatsApp." },
+  { n: 1, title: "Open your dashboard", body: "Sign in to CampaignSetu and tap Connect WhatsApp." },
   { n: 2, title: "Meta popup opens", body: "Continue with Facebook inside Meta's hosted Embedded Signup window." },
   { n: 3, title: "Choose business assets", body: "Select or create the correct Business Portfolio, WhatsApp Business Account and phone number." },
   { n: 4, title: "Complete Meta checks", body: "Finish any OTP, business verification, number eligibility or permission step Meta requires." },

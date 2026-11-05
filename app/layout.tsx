@@ -12,7 +12,7 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", displ
 export const metadata: Metadata = {
   metadataBase: new URL(site.domain),
   title: {
-    default: "Business Messaging Dashboard | API Integration",
+    default: "CampaignSetu | WhatsApp API & CRM",
     template: "%s | CampaignSetu",
   },
   description: site.description,
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: site.name }],
   openGraph: {
-    title: "Business Messaging Dashboard | API Integration",
+    title: "CampaignSetu | WhatsApp API & CRM",
     description: site.description,
     url: site.domain,
     siteName: site.name,
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Business Messaging Dashboard | API Integration",
+    title: "CampaignSetu | WhatsApp API & CRM",
     description: site.description,
   },
   robots: { index: true, follow: true },
