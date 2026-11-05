@@ -54,6 +54,9 @@ jobs:
       - name: Test WhatsApp connection diagnostics
         run: node --test tests/whatsapp-connection-health.test.cjs
 
+      - name: Test automatic reply cooldown and opt-out protection
+        run: node --test tests/automation-safety.test.cjs
+
       - name: Test coexistence recovery
         run: node --test tests/coexistence-recovery.test.cjs
 

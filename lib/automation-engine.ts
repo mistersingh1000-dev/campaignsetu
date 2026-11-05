@@ -1,4 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
+import { createHash } from "node:crypto";
 import type { AppUser } from "@/lib/db";
 import type { Contact } from "@/lib/chat-db";
 import { addMessage, updateContactForUser } from "@/lib/chat-db";
@@ -107,6 +108,29 @@ export async function runInboundAutomations(args: {
   const rules = await listEnabledAutomationRules(args.db, args.owner.email);
   const rule = matchAutomationRule(rules, args.inboundText);
   if (!rule) return { matched: 0, sent: 0 };
+
+  // One automatic reply at most every ten minutes for each owner/conversation.
+  // The reservation is atomic across concurrent Vercel instances. When Meta's
+  // result is uncertain, retain the window instead of risking duplicate sends.
+  const now = Date.now(), coolDownMs = 10 * 60 * 1000;
+  const throttleId = createHash("sha256")
+    .update(args.owner.email + "\0" + args.conversationId)
+    .digest("hex");
+  const throttleRef = args.db.collection("automation_reply_windows").doc(throttleId);
+  const acquired = await args.db.runTransaction(async tx => {
+    const previous = await tx.get(throttleRef);
+    const last = Number(previous.data()?.lastReplyAttemptAt || 0);
+    if (last > 0 && last <= now && now - last < coolDownMs) return false;
+    tx.set(throttleRef, {
+      userId: args.owner.email,
+      conversationId: args.conversationId,
+      lastReplyAttemptAt: now,
+      ruleId: rule.id,
+      updatedAt: new Date(now).toISOString(),
+    });
+    return true;
+  });
+  if (!acquired) return { matched: 1, sent: 0, blocked: "cooldown" };
 
   if (rule.addTags.length) {
     const tags = Array.from(new Set([...(args.contact.tags || []), ...rule.addTags])).slice(0, 25);
