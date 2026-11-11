@@ -1,7 +1,6 @@
 const test=require("node:test");
 const assert=require("node:assert/strict");
 const {load}=require("./test-helpers.cjs");
-
 function setup(options={}) {
  const saved=[]; let rate={allowed:true,remaining:4,retryAfterSeconds:0},email=null;
  const db={collection:name=>({add:async value=>{saved.push({name,value});return {id:"enquiry-1"};}})};
@@ -30,7 +29,7 @@ test("public contact rejects invalid and oversized fields before storing",async(
  assert.equal((await route.POST(request({name:"A".repeat(121),email:"buyer@example.com"}))).status,400);
  assert.equal((await route.POST(request({name:"Buyer",email:"bad"}))).status,400);
  assert.equal((await route.POST(request({name:"Buyer",email:"buyer@example.com",message:"x".repeat(4001)}))).status,400);
- assert.equal((await route.POST(request({name:"Buyer",email:"buyer@example.com"},{ "content-length":"20000"}))).status,413);
+ assert.equal((await route.POST(request({name:"Buyer",email:"buyer@example.com",message:"x".repeat(17000)}))).status,413);
  assert.equal((await route.POST(request("{invalid json"))).status,400);
  assert.equal(saved.length,0);
 });
