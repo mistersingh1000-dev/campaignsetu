@@ -36,7 +36,7 @@ test("public contact rejects invalid and oversized fields before storing",async(
 test("public contact rate limit blocks repeat submissions and reports retry time",async()=>{
  const {route,saved,setRate}=setup();setRate({allowed:false,remaining:0,retryAfterSeconds:900});
  const res=await route.POST(request({name:"Buyer",email:"buyer@example.com"},{ "x-forwarded-for":"203.0.113.10"}));
- assert.equal(res.status,429);assert.equal(res.headers["Retry-After"],900);assert.equal(saved.length,0);
+ assert.equal(res.status,429);assert.equal(res.headers["Retry-After"],"900");assert.equal(saved.length,0);
 });
 test("public contact reports database outage rather than a false success",async()=>{
  const {route}=setup({noDb:true});const res=await route.POST(request({name:"Buyer",email:"buyer@example.com"}));
