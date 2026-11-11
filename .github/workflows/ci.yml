@@ -40,6 +40,9 @@ jobs:
       - name: Test CRM
         run: node --test tests/crm.test.cjs
 
+      - name: Test public contact form validation and abuse controls
+        run: node --test tests/contact-form.test.cjs
+
       - name: Test CRM API workflow, isolation and write safety
         run: node --test tests/crm-workflow.test.cjs
 
