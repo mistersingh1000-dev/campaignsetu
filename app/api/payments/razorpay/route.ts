@@ -48,7 +48,12 @@ async function sessionContext() {
 }
 
 export async function GET() {
-  return NextResponse.json({ onlineCheckoutAvailable: Boolean(credentials()) }, {headers:{"Cache-Control":"no-store"}});
+  // Owner-selected payment workflow: manual UPI QR + admin verification only.
+  // Keep Razorpay integration code intact for a future explicitly authorized switch.
+  return NextResponse.json(
+    { onlineCheckoutAvailable: false, paymentMode: "manual_upi" },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function POST(req: Request) {
