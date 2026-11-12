@@ -54,5 +54,33 @@ export async function POST(req: Request) {
     }, { merge: true });
   });
   const ref = await db.collection("website_chat_messages").add({ sessionId, ownerId, sender: "visitor", text: message, createdAt: now });
-  return NextResponse.json({ ok: true, message: { id: ref.id, sender: "visitor", text: message, createdAt: now } }, { status: 201 });
+
+  // Approved answers only: use explicit admin-maintained phrases, never a generated answer.
+  const knowledge = await db.collection("approved_knowledge").where("ownerId", "==", ownerId).where("active", "==", true).get();
+  const normalized = message.toLowerCase().replace(/[^a-z0-9\\s]/g, " ").replace(/\\s+/g, " ").trim();
+  const matched = knowledge.docs.find(doc => {
+    const keywords = Array.isArray(doc.data().keywords) ? doc.data().keywords : [];
+    return keywords.some((raw: unknown) => {
+      const phrase = String(raw || "").toLowerCase().trim();
+      return phrase.length >= 3 && normalized.includes(phrase);
+    });
+  });
+  if (matched) {
+    const approvedText = String(matched.data().answer || "").slice(0, 3000);
+    const autoRef = await db.collection("website_chat_messages").add({
+      sessionId, ownerId, sender: "admin", text: approvedText, source: "approved-knowledge",
+      knowledgeId: matched.id, createdAt: new Date().toISOString(),
+    });
+    await sessionRef.set({ lastMessage: approvedText.slice(0,180), lastMessageAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, { merge: true });
+    return NextResponse.json({ ok: true, message: { id: ref.id, sender: "visitor", text: message, createdAt: now }, autoReply: { id: autoRef.id, sender: "admin", text: approvedText } }, { status: 201 });
+  }
+
+  // Unknown questions are queued for human review. The suggested text is an internal
+  // starter draft only; it is deliberately not sent to the visitor.
+  await db.collection("ai_question_approvals").add({
+    ownerId, channel: "website", sessionId, question: message,
+    suggestedAnswer: "Thanks for your question. Our team will review it and get back to you shortly.",
+    status: "pending", createdAt: now,
+  });
+  return NextResponse.json({ ok: true, message: { id: ref.id, sender: "visitor", text: message, createdAt: now }, queuedForReview: true }, { status: 201 });
 }
