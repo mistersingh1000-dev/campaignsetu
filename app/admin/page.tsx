@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function AdminPage() {
-  return <><div className="container-px pt-6"><Link href="/admin/website-chat" className="btn-ghost inline-flex">Open Website Live Chat →</Link></div><AdminPanel /></>;
+  return <><div className="container-px pt-6"><div className="flex flex-wrap gap-2"><Link href="/admin/website-chat" className="btn-ghost inline-flex">Open Website Live Chat →</Link><Link href="/admin/ai-assistant" className="btn-ghost inline-flex">Approved Answers & Review Queue →</Link></div></div><AdminPanel /></>;
 }
