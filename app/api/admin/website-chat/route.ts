@@ -4,12 +4,23 @@ import { getAdminSession } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: Request) {
   const admin = await getAdminSession();
   if (!admin) return NextResponse.json({ error: "unauthorized" }, { status: 403 });
   const db = getDb();
   if (!db) return NextResponse.json({ error: "no_db" }, { status: 503 });
   const ownerId = normEmail(admin.sub);
+  const sessionId = new URL(req.url).searchParams.get("sessionId");
+  if (sessionId) {
+    if (!sessionId.startsWith("campaignsetu_")) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+    const sessionRef = db.collection("website_chat_sessions").doc(sessionId);
+    const sessionSnap = await sessionRef.get();
+    if (!sessionSnap.exists || sessionSnap.data()?.ownerId !== ownerId) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    const messageSnap = await db.collection("website_chat_messages").where("sessionId", "==", sessionId).get();
+    const messages = messageSnap.docs.map(d => ({ id: d.id, ...d.data() as any })).sort((a,b) => String(a.createdAt).localeCompare(String(b.createdAt))).slice(-40);
+    await sessionRef.update({ unreadForAdmin: 0 });
+    return NextResponse.json({ messages });
+  }
   const snap = await db.collection("website_chat_sessions").where("ownerId", "==", ownerId).get();
   const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() as any }))
     .sort((a,b) => String(b.lastMessageAt).localeCompare(String(a.lastMessageAt)));
