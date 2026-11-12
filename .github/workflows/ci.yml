@@ -46,6 +46,9 @@ jobs:
       - name: Test CRM API workflow, isolation and write safety
         run: node --test tests/crm-workflow.test.cjs
 
+      - name: Test lead intent scoring and opt-out triage
+        run: node --test tests/lead-qualification.test.cjs
+
       - name: Test encrypted backup
         run: node --test tests/disaster-backup.test.cjs
 
