@@ -57,7 +57,7 @@ export async function POST(req: Request) {
 
   // Approved answers only: use explicit admin-maintained phrases, never a generated answer.
   const knowledge = await db.collection("approved_knowledge").where("ownerId", "==", ownerId).get();
-  const normalized = message.toLowerCase().replace(/[^a-z0-9\\s]/g, " ").replace(/\\s+/g, " ").trim();
+  const normalized = message.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
   const matched = knowledge.docs.find(doc => {
     const keywords = Array.isArray(doc.data().keywords) ? doc.data().keywords : [];
     return doc.data().active === true && keywords.some((raw: unknown) => {
