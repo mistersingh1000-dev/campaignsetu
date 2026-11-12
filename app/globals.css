@@ -153,3 +153,215 @@ body {
   );
   background-size: 200% 100%;
 }
+
+
+/* CampaignSetu CRM: touch-first layouts for phones and small tablets */
+@media (max-width: 767px) {
+  main.mx-auto.max-w-7xl {
+    width: 100%;
+    padding: 1rem;
+    overflow-x: clip;
+  }
+
+  main.mx-auto.max-w-7xl h1 {
+    font-size: clamp(1.8rem, 8vw, 2.25rem);
+    line-height: 1.12;
+  }
+
+  main.mx-auto.max-w-7xl > div:first-of-type {
+    align-items: stretch;
+  }
+
+  main.mx-auto.max-w-7xl > div:first-of-type > button {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  main.mx-auto.max-w-7xl .grid.grid-cols-2 {
+    gap: .65rem;
+  }
+
+  main.mx-auto.max-w-7xl .grid.grid-cols-2 > div {
+    min-width: 0;
+    padding: .85rem;
+  }
+
+  main.mx-auto.max-w-7xl .grid.grid-cols-2 > div p:last-child {
+    overflow-wrap: anywhere;
+    font-size: clamp(1.15rem, 5vw, 1.5rem);
+  }
+
+  main.mx-auto.max-w-7xl > div.mb-4.flex {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  main.mx-auto.max-w-7xl > div.mb-4.flex button {
+    min-height: 44px;
+    padding-inline: .6rem;
+  }
+
+  main.mx-auto.max-w-7xl > div.mb-4.flex button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  main.mx-auto.max-w-7xl > div.mb-5.flex {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .65rem;
+  }
+
+  main.mx-auto.max-w-7xl > div.mb-5.flex input,
+  main.mx-auto.max-w-7xl > div.mb-5.flex select {
+    width: 100%;
+    max-width: none;
+    min-height: 46px;
+  }
+
+  /* Turn the wide desktop lead table into readable, stacked lead cards. */
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody {
+    display: grid;
+    gap: .75rem;
+    padding: .75rem;
+  }
+
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .55rem .75rem;
+    padding: .85rem;
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    background: var(--surface);
+  }
+
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody td {
+    min-width: 0;
+    padding: .15rem 0;
+    overflow-wrap: anywhere;
+    border: 0;
+  }
+
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody td:first-child,
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody td:last-child {
+    grid-column: 1 / -1;
+  }
+
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody td:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody td:nth-child(n+3)::before {
+    display: block;
+    margin-bottom: .2rem;
+    color: var(--text-muted);
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody td:nth-child(3)::before { content: "Stage"; }
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody td:nth-child(4)::before { content: "Source"; }
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody td:nth-child(5)::before { content: "Follow-up"; }
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody td:nth-child(6)::before { content: "Deal value"; }
+
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table tbody td:last-child button {
+    display: block;
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid var(--line);
+    border-radius: .75rem;
+    background: rgba(37, 211, 102, .08);
+  }
+
+  /* Keep all pipeline stages reachable without squeezing six columns. */
+  main.mx-auto.max-w-7xl .grid.gap-4.md\\:grid-cols-3.xl\\:grid-cols-6 {
+    display: flex;
+    gap: .75rem;
+    overflow-x: auto;
+    padding-bottom: .5rem;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  main.mx-auto.max-w-7xl .grid.gap-4.md\\:grid-cols-3.xl\\:grid-cols-6 > section {
+    flex: 0 0 min(82vw, 19rem);
+    scroll-snap-align: start;
+  }
+
+  main.mx-auto.max-w-7xl .fixed.inset-0 form {
+    width: 100%;
+    max-width: 100%;
+    margin: .25rem auto;
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+
+  main.mx-auto.max-w-7xl .fixed.inset-0 {
+    padding: .5rem;
+    overscroll-behavior: contain;
+  }
+
+  main.mx-auto.max-w-7xl .fixed.inset-0 form > label,
+  main.mx-auto.max-w-7xl .fixed.inset-0 form input,
+  main.mx-auto.max-w-7xl .fixed.inset-0 form select,
+  main.mx-auto.max-w-7xl .fixed.inset-0 form textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  main.mx-auto.max-w-7xl .fixed.inset-0 form input,
+  main.mx-auto.max-w-7xl .fixed.inset-0 form select,
+  main.mx-auto.max-w-7xl .fixed.inset-0 form textarea {
+    min-height: 44px;
+  }
+
+  main.mx-auto.max-w-7xl .fixed.inset-0 form > div:last-child {
+    position: sticky;
+    bottom: -1rem;
+    padding: .75rem 0 .25rem;
+    background: white;
+  }
+
+  main.mx-auto.max-w-7xl .fixed.inset-0 form > div:last-child button {
+    flex: 1;
+    min-height: 46px;
+  }
+
+  main.mx-auto.max-w-7xl > div.mt-6.grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  main.mx-auto.max-w-7xl > p.mt-5 {
+    line-height: 1.55;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  main.mx-auto.max-w-7xl {
+    padding-inline: 1.25rem;
+  }
+
+  main.mx-auto.max-w-7xl > div.overflow-x-auto > table {
+    min-width: 900px;
+  }
+}
