@@ -30,6 +30,12 @@ export async function saveLead(db: Firestore, userId: string, input: any, facebo
   const config = await db.collection("crm_settings").doc(userId).get();
   const fields = cleanLead(input, !facebookLeadId, (config.data() as CrmSettings) || defaultSettings);
   const intelligence = facebookLeadId || whatsAppPhone ? assessLeadForm(input.formAnswers || {}, fields.name) : null;
+  // Schedule an internal callback task for new Facebook leads using the deterministic triage score.
+  // Never auto-send a message; opt-outs receive no follow-up task.
+  if (facebookLeadId && intelligence && !fields.followUpAt && intelligence.intent !== "opt_out") {
+    const delayHours = intelligence.priority === "Hot" ? 1 : intelligence.priority === "Warm" ? 6 : 24;
+    fields.followUpAt = new Date(Date.now() + delayHours * 60 * 60 * 1000).toISOString();
+  }
   const ref = facebookLeadId ? db.collection("crm_leads").doc(createHash("sha256").update(userId + ":" + facebookLeadId).digest("hex"))
     : whatsAppPhone ? db.collection("crm_leads").doc(createHash("sha256").update(userId + ":whatsapp:" + whatsAppPhone).digest("hex"))
     : db.collection("crm_leads").doc();
