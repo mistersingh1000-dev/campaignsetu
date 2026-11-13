@@ -12,9 +12,14 @@ function flag(name: string): boolean {
   return ["1", "true", "yes", "on"].includes(String(process.env[name] || "").toLowerCase());
 }
 
-function databaseReady(): boolean {
+async function databaseReady(): Promise<boolean> {
   try {
-    return Boolean(getDb());
+    const db = getDb();
+    if (!db) return false;
+    // A read-only Firestore request verifies connectivity and credentials;
+    // merely constructing the Admin SDK client is not a readiness check.
+    await db.collection("users").limit(1).get();
+    return true;
   } catch {
     return false;
   }
@@ -29,6 +34,7 @@ export async function GET() {
   const firebaseConfigured = Boolean(
     configured("FIREBASE_SERVICE_ACCOUNT") || configured("FIREBASE_SERVICE_ACCOUNT_BASE64")
   );
+  const firebaseReady = firebaseConfigured && await databaseReady();
   const providerMode = flag("META_PROVIDER_MODE_ENABLED");
   const creditLineMode = flag("META_PROVIDER_CREDIT_LINE_ENABLED");
   const trialDays = Number(process.env.TRIAL_DAYS || 7);
@@ -51,7 +57,7 @@ export async function GET() {
     {
       id: "firebase",
       label: "Firebase service account",
-      configured: firebaseConfigured && databaseReady(),
+      configured: firebaseReady,
       required: true,
       help: "Required for users, conversations, contacts, orders, campaigns and automations.",
     },
