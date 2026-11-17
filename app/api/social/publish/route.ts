@@ -30,6 +30,12 @@ export async function GET() {
 export async function POST(req: Request) {
   const c = await crmRequestContext();
   if (c.error) return c.error;
+  const userSnap = await c.db!.collection("users").doc(c.user!.email).get();
+  const u = userSnap.data() || {};
+  const isAdmin = [process.env.ADMIN_EMAIL || "", ...(process.env.ADMIN_EMAILS || "").split(",")].map((s) => s.trim().toLowerCase()).filter(Boolean).includes(c.user!.email.toLowerCase());
+  if (!isAdmin && !u.social_publisher_enabled) {
+    return NextResponse.json({ error: "Social Publisher access is not granted for your account. Contact admin." }, { status: 403 });
+  }
   const body = await req.json().catch(() => ({}));
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const mediaUrl = typeof body.mediaUrl === "string" ? body.mediaUrl.trim() : "";
