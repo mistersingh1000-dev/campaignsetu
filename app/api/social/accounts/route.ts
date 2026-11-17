@@ -25,9 +25,12 @@ export async function GET() {
       };
     });
     const userData = userSnap.data() || {};
+    const isAdmin = [process.env.ADMIN_EMAIL || "", ...(process.env.ADMIN_EMAILS || "").split(",")].map((s) => s.trim().toLowerCase()).filter(Boolean).includes(c.user!.email.toLowerCase());
+    const socialEnabled = Boolean(isAdmin || userData.social_publisher_enabled);
     return NextResponse.json({
       config: socialConfigStatus(),
       whatsappConnected: Boolean(userData.whatsappConnected || userData.phoneNumberId),
+      socialEnabled,
       accounts,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch {
