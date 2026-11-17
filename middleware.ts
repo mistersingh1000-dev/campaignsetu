@@ -2,20 +2,43 @@ import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_NAME, verifySession } from "@/lib/auth";
 
 export async function middleware(req: NextRequest) {
-  const hostname = req.headers.get("host")?.split(":")[0]?.toLowerCase();
-  if (hostname === "campaignsetu.vercel.app") {
+  const hostname = req.headers.get("host")?.split(":")[0]?.toLowerCase() ?? "";
+
+  // Show the migration notice on the old CampaignSetu Vercel domain and
+  // its project-scoped Vercel aliases, without affecting lasmediaagency.online.
+  const isLegacyCampaignSetuHost =
+    hostname === "campaignsetu.vercel.app" ||
+    (hostname.startsWith("campaignsetu-") && hostname.endsWith(".vercel.app"));
+
+  if (isLegacyCampaignSetuHost) {
     const url = req.nextUrl.clone();
     url.pathname = "/moved";
+    url.search = "";
     return NextResponse.rewrite(url);
   }
-  // Keep the Las Media Agency homepage public; only the legacy CampaignSetu hostname is rewritten above.
-  if (req.nextUrl.pathname === "/") {
+
+  const pathname = req.nextUrl.pathname;
+  const isProtected =
+    pathname.startsWith("/dashboard/") ||
+    pathname === "/dashboard" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/admin" ||
+    pathname.startsWith("/api/chat/") ||
+    pathname.startsWith("/api/whatsapp/") ||
+    pathname.startsWith("/api/admin/") ||
+    pathname.startsWith("/api/dashboard/") ||
+    pathname.startsWith("/api/payments/") ||
+    pathname === "/api/orders" ||
+    pathname.startsWith("/api/embedded-signup/");
+
+  // Public pages (including the Las Media Agency homepage) remain public.
+  if (!isProtected) {
     return NextResponse.next();
   }
 
   const token = req.cookies.get(COOKIE_NAME)?.value;
   const session = await verifySession(token);
-  const isApi = req.nextUrl.pathname.startsWith("/api/");
+  const isApi = pathname.startsWith("/api/");
 
   if (!session) {
     if (isApi) {
@@ -34,14 +57,11 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// IMPORTANT: never match "/api/:path*" broadly — that would block
-// /api/auth/signup and /api/auth/login, which must work without a session.
-// Also never match /api/webhooks/* — WhatsApp calls it with no cookie.
+// Run on public page routes too, so legacy CampaignSetu URLs cannot expose
+// the old public website. Keep APIs out of the catch-all so webhooks/login work.
 export const config = {
   matcher: [
-    "/",
-    "/dashboard/:path*",
-    "/admin/:path*",
+    "/((?!api/|_next/|.*\\..*).*)",
     "/api/chat/:path*",
     "/api/whatsapp/:path*",
     "/api/admin/:path*",
