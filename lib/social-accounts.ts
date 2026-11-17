@@ -48,13 +48,18 @@ export async function beginMetaSocialAuth(db: Firestore, userId: string) {
   });
   const version = process.env.WHATSAPP_API_VERSION || "v26.0";
   const url = new URL(`https://www.facebook.com/${version}/dialog/oauth`);
-  url.search = new URLSearchParams({
-    client_id: process.env.NEXT_PUBLIC_META_APP_ID,
-    redirect_uri: callbackUrl("/api/social/meta/callback"),
-    scope: "pages_show_list,pages_manage_posts,pages_read_engagement,instagram_basic,instagram_content_publish",
-    response_type: "code",
-    state,
-  }).toString();
+  const params: Record<string, string> = {
+  client_id: process.env.NEXT_PUBLIC_META_APP_ID,
+  redirect_uri: callbackUrl("/api/social/meta/callback"),
+  response_type: "code",
+  state,
+};
+  if (process.env.META_SOCIAL_CONFIG_ID) {
+    params.config_id = process.env.META_SOCIAL_CONFIG_ID;
+  } else {
+    params.scope = process.env.META_SOCIAL_SCOPES || "pages_show_list,pages_read_engagement";
+  }
+  url.search = new URLSearchParams(params).toString();
   return { state, url: url.toString() };
 }
 
