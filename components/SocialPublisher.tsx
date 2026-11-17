@@ -200,7 +200,7 @@ export default function SocialPublisher() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
-            disabled={submitting || accounts.length === 0} | !socialEnabled}
+            disabled={submitting || accounts.length === 0} || !socialEnabled}
             className="rounded-xl bg-[#16a66a] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             {submitting ? "Processing..." : scheduleMode ? "Schedule Post" : "Publish Now"}
