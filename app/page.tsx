@@ -32,17 +32,17 @@ export default function HomePage() {
             <Reveal>
               <span className="eyebrow">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald" />
-                Independent business messaging software
+                All-in-One Business Growth & Social Automation
               </span>
             </Reveal>
             <Reveal delay={80}>
               <h1 className="mt-5 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-                Manage customer conversations with an <span className="gradient-text">independent messaging dashboard</span>
+                All-in-One Integration: <span className="gradient-text">Meta WhatsApp API, CRM &amp; Social Media</span>
               </h1>
             </Reveal>
             <Reveal delay={160}>
               <p className="muted mt-5 max-w-xl text-base leading-relaxed sm:text-lg">
-                CampaignSetu is independent business messaging software. Connect a business-owned WhatsApp account through Meta-hosted Embedded Signup, receive messages and delivery events, manage contacts and conversations, and send compliant support or approved template messages from one dashboard.
+                Connect Facebook, Instagram, Twitter (X), and Meta-approved WhatsApp Business API in one place. Manage your complete CRM setup, automate customer conversations, and publish social posts across all channels from a single dashboard.
               </p>
             </Reveal>
             <Reveal delay={240}>
