@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   const password = String(body?.password || "");
   const crmPlanId = String(body?.crm_plan_id || "").trim();
 
-  if (!/^\\S+@\\S+\\.\\S+$/.test(email)) {
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
     return NextResponse.json({ error: "invalid_email", message: "Enter a valid customer email address." }, { status: 400 });
   }
   if (password.length < 8 || password.length > 200) {
