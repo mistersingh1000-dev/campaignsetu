@@ -8,6 +8,11 @@ export async function middleware(req: NextRequest) {
     url.pathname = "/moved";
     return NextResponse.rewrite(url);
   }
+  // Keep the Las Media Agency homepage public; only the legacy CampaignSetu hostname is rewritten above.
+  if (req.nextUrl.pathname === "/") {
+    return NextResponse.next();
+  }
+
   const token = req.cookies.get(COOKIE_NAME)?.value;
   const session = await verifySession(token);
   const isApi = req.nextUrl.pathname.startsWith("/api/");
@@ -34,6 +39,7 @@ export async function middleware(req: NextRequest) {
 // Also never match /api/webhooks/* — WhatsApp calls it with no cookie.
 export const config = {
   matcher: [
+    "/",
     "/dashboard/:path*",
     "/admin/:path*",
     "/api/chat/:path*",
