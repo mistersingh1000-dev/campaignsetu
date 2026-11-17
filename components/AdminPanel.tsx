@@ -16,6 +16,7 @@ type User = {
   crm_status?: string;
   crm_ends_at?: string;
   created_at: string;
+  social_publisher_enabled?: boolean;
 };
 
 const PLAN_DURATIONS = [
@@ -80,6 +81,19 @@ export default function AdminPanel() {
       setMsg("Error loading users");
     } finally {
       setLoading(false);
+    }
+  
+};
+  const toggleSocialAccess = async (user: any) => {
+    const next = !Boolean(user.social_publisher_enabled);
+    const res = await fetch("/api/admin/users/social-access", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email, enabled: next }),
+    });
+    if (res.ok) {
+      setMsg(`Social Publisher ${next ? "granted" : "revoked"} for ${user.email} ✓`);
+      await load();
     }
   };
 
@@ -273,6 +287,9 @@ export default function AdminPanel() {
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => startGrant(user)} className="btn-primary px-3 py-2 text-xs">Give Plan</button>
                       <button onClick={() => startEdit(user)} className="btn-ghost px-3 py-2 text-xs">Edit</button>
+                          <button onClick={() => toggleSocialAccess(user)} className="btn-ghost px-3 py-2 text-xs">
+                            {user.social_publisher_enabled ? "Revoke Social" : "Grant Social"}
+                          </button>
                     </div>
                   </td>
                 </tr>
