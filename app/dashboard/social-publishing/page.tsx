@@ -1,0 +1,2 @@
+import FacebookPublishing from "@/components/FacebookPublishing";
+export default function SocialPublishingPage(){return <main className="mx-auto max-w-5xl space-y-6 p-4 md:p-8"><div><p className="text-sm font-semibold text-emerald-600">SOCIAL MEDIA</p><h1 className="mt-1 text-3xl font-bold">Social Publishing</h1><p className="mt-2 text-sm text-slate-500">Connect and publish to your business social accounts.</p></div><FacebookPublishing /></main>}
