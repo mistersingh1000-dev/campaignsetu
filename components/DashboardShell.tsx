@@ -28,6 +28,7 @@ const items: Item[] = [
   { label: "Save Money", href: "/dashboard/save-money", icon: "shield" },
   { label: "Contacts", href: "/dashboard/contacts", icon: "link" },
   { label: "Lead CRM", href: "/dashboard/lead-crm", icon: "report" },
+  { label: "Social Publishing", href: "/dashboard/social-publishing", icon: "send" },
   { label: "Automation", href: "/dashboard/automations", icon: "bolt" },
   { label: "Leads & Commerce", href: "/dashboard/commerce", icon: "spark" },
   { label: "Channels", href: "/dashboard/channels", icon: "whatsapp" },
