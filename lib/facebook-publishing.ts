@@ -44,6 +44,10 @@ export async function exchangeAndSavePages(db: Firestore, userId: string, code: 
   const tokenRes = await fetch(`${base}/oauth/access_token`, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:new URLSearchParams({client_id:process.env.NEXT_PUBLIC_META_APP_ID!,client_secret:process.env.META_APP_SECRET!,redirect_uri:facebookPublishCallback(),code}), cache:"no-store" });
   const tokenData = await tokenRes.json();
   if (!tokenRes.ok || typeof tokenData.access_token !== "string") throw new Error("token_exchange_failed");
+  const permissionRes = await fetch(`${base}/me/permissions`, { headers:{Authorization:`Bearer ${tokenData.access_token}`}, cache:"no-store" });
+  const permissionData = await permissionRes.json();
+  const granted = new Set((permissionData.data || []).filter((p: any) => p.status === "granted").map((p: any) => p.permission));
+  if (!permissionRes.ok || !["pages_show_list","pages_read_engagement","pages_manage_posts"].every(p => granted.has(p))) throw new Error("required_permissions_missing");
   const meRes = await fetch(`${base}/me/accounts?fields=id,name,access_token&limit=100`, { headers:{Authorization:`Bearer ${tokenData.access_token}`}, cache:"no-store" });
   const meData = await meRes.json();
   if (!meRes.ok || !Array.isArray(meData.data)) throw new Error("page_discovery_failed");
