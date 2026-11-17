@@ -31,6 +31,7 @@ const items: Item[] = [
   { label: "Automation", href: "/dashboard/automations", icon: "bolt" },
   { label: "Leads & Commerce", href: "/dashboard/commerce", icon: "spark" },
   { label: "Channels", href: "/dashboard/channels", icon: "whatsapp" },
+  { label: "Social Publisher", href: "/dashboard/social", icon: "send" },
   { label: "Settings", href: "/dashboard/settings", icon: "key" },
   { label: "Support Tickets", href: "/dashboard/support", icon: "report" },
   { label: "Subscription & Plans", href: "/dashboard/subscription", icon: "shield" },
