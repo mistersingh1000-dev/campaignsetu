@@ -2,6 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_NAME, verifySession } from "@/lib/auth";
 
 export async function middleware(req: NextRequest) {
+  const hostname = req.headers.get("host")?.split(":")[0]?.toLowerCase();
+  if (hostname === "campaignsetu.vercel.app") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/moved";
+    return NextResponse.rewrite(url);
+  }
   const token = req.cookies.get(COOKIE_NAME)?.value;
   const session = await verifySession(token);
   const isApi = req.nextUrl.pathname.startsWith("/api/");
