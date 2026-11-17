@@ -23,6 +23,7 @@ type PostItem = {
 
 export default function SocialPublisher() {
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [socialEnabled, setSocialEnabled] = useState(true);
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [text, setText] = useState("");
@@ -40,6 +41,7 @@ export default function SocialPublisher() {
     ]);
     if (Array.isArray(accRes.accounts)) setAccounts(accRes.accounts);
     if (Array.isArray(postRes.posts)) setPosts(postRes.posts);
+    setSocialEnabled(accRes.socialEnabled !== false);
   };
 
   useEffect(() => {
@@ -87,6 +89,11 @@ export default function SocialPublisher() {
 
   return (
     <div className="space-y-8">
+      {!socialEnabled && (
+        <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 p-4 text-sm text-amber-300">
+          Social Publisher access is not granted for this account yet. Ask your admin to click Grant Social in the Admin Panel.
+        </div>
+      )}
       <form onSubmit={submit} className="rounded-3xl border p-6 space-y-5" style={{ borderColor: "var(--line)" }}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -193,7 +200,7 @@ export default function SocialPublisher() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
-            disabled={submitting || accounts.length === 0}
+            disabled={submitting || accounts.length === 0} | !socialEnabled}
             className="rounded-xl bg-[#16a66a] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             {submitting ? "Processing..." : scheduleMode ? "Schedule Post" : "Publish Now"}
