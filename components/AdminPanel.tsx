@@ -58,6 +58,8 @@ export default function AdminPanel() {
   const [grantProduct, setGrantProduct] = useState("api");
   const [grantBusy, setGrantBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: "", email: "", password: "", crm_plan_id: "" });
 
   useEffect(() => {
     load();
@@ -120,6 +122,30 @@ export default function AdminPanel() {
     }
   };
 
+  const createCustomer = async () => {
+    setCreating(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(data.message || data.error || "Could not create customer account");
+        return;
+      }
+      setMsg(data.message || `Customer account created for ${createForm.email} ✓`);
+      setCreateForm({ name: "", email: "", password: "", crm_plan_id: "" });
+      await load();
+    } catch {
+      setMsg("Error creating customer account");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const givePlan = async () => {
     if (!grantingUser) return;
     setGrantBusy(true);
@@ -170,6 +196,41 @@ export default function AdminPanel() {
             : msg}
         </div>
       )}
+
+      <div className="card mb-8 p-6">
+        <div className="mb-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-emerald">Admin customer tools</p>
+          <h2 className="mt-1 font-display text-xl font-semibold">Create Customer Account</h2>
+          <p className="muted mt-1 text-sm">Create login credentials for a customer who cannot complete signup. Passwords are securely hashed and never displayed again.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">Customer Name</label>
+            <input className="field" autoComplete="name" value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} placeholder="Customer name" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">Email Address</label>
+            <input className="field" type="email" autoComplete="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} placeholder="customer@example.com" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">Temporary Password</label>
+            <input className="field" type="password" autoComplete="new-password" minLength={8} value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} placeholder="At least 8 characters" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">CRM Plan (optional)</label>
+            <select className="field" value={createForm.crm_plan_id} onChange={e => setCreateForm(f => ({ ...f, crm_plan_id: e.target.value }))}>
+              <option value="">Create trial account — assign plan later</option>
+              {crmOffers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button onClick={createCustomer} disabled={creating || !createForm.email.trim() || createForm.password.length < 8} className="btn-primary disabled:opacity-60">
+            {creating ? "Creating Account…" : "Create Customer Account"}
+          </button>
+          <span className="muted text-xs">API / WhatsApp access is not granted by this CRM account form.</span>
+        </div>
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
